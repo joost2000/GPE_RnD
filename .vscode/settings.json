@@ -51,5 +51,5 @@
         "temp/": true,
         "Temp/": true
     },
-    "dotnet.defaultSolution": "PlanetaryTerraforming.sln"
+    "dotnet.defaultSolution": "GPE_RnD.sln"
 }
