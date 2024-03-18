@@ -1,133 +1,41 @@
-using System.Collections;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-[RequireComponent(typeof(MeshFilter), typeof(MeshRenderer))]
+[Serializable]
+public struct PointData
+{
+    public Vector3 position;
+    public float densityValue;
+    public PointData(Vector3 _pos, float _densityVal)
+    {
+        position = _pos;
+        densityValue = _densityVal;
+    }
+}
+
 public class MarchingCubes : MonoBehaviour
 {
-    [SerializeField] private int width = 30;
-    [SerializeField] private int height = 10;
+    public int cubeSize;
+    [Range(0.1f, 1f)]
+    public float gizmoSize;
+    private int width, height;
+    [Range(0.1f, 2)]
+    public float noiseScale;
 
-    [SerializeField] float resolution = 1;
-    [Range(0, 0.5f)]
-    [SerializeField] float noiseScale = 1;
+    public float activationThreshold;
+    public List<PointData> vertices = new List<PointData>();
 
-    [Range(0, 1)]
-    [SerializeField] private float heightTresshold = 0.5f;
-
-    [SerializeField] bool visualizeNoise;
-    [SerializeField] bool use3DNoise;
-
-    [SerializeField] SphereTexture sphereTexture;
-
-    private List<Vector3> vertices = new List<Vector3>();
-    private List<int> triangles = new List<int>();
-    private float[,,] heights;
-
-    private MeshFilter meshFilter;
-
-    public AnimationCurve animCurve;
-
-    void Start()
+    private void Start()
     {
-        meshFilter = GetComponent<MeshFilter>();
-        StartCoroutine(TestAll());
+        Grid();
+        MarchThroughGrid();
     }
 
-    private IEnumerator TestAll()
+    void Grid()
     {
-        while (true)
-        {
-            SetHeights();
-            MarchCubes();
-            SetMesh();
-            yield return new WaitForSeconds(500f);
-        }
-    }
-
-    private void SetMesh()
-    {
-        Mesh mesh = new Mesh();
-
-        mesh.vertices = vertices.ToArray();
-        mesh.triangles = triangles.ToArray();
-        mesh.RecalculateNormals();
-
-        meshFilter.mesh = mesh;
-    }
-
-    private void SetHeights()
-    {
-        heights = new float[width + 1, height + 1, width + 1];
-
-        for (int x = 0; x < width + 1; x++)
-        {
-            for (int y = 0; y < height + 1; y++)
-            {
-                for (int z = 0; z < width + 1; z++)
-                {
-                    if (use3DNoise)
-                    {
-                        float currentHeight = PerlinNoise3D(x / width * noiseScale, y / height * noiseScale, z / width * noiseScale);
-
-                        heights[x, y, z] = currentHeight;
-                    }
-                    else
-                    {
-                        //float currentHeight = height * Mathf.PerlinNoise(x * noiseScale, z * noiseScale);
-                        sphereTexture.GenerateSphereTexture(z * animCurve.Evaluate((float)z / (width + 1)) * 4);
-                        print(z * animCurve.Evaluate((float)z / width) * 4);
-                        float currentHeight = height * sphereTexture.QueryTexture(x, y).b;
-                        // float distToSufrace;
-
-                        // if (y <= currentHeight - 0.5f)
-                        //     distToSufrace = 0f;
-                        // else if (y > currentHeight + 0.5f)
-                        //     distToSufrace = 1f;
-                        // else if (y > currentHeight)
-                        //     distToSufrace = y - currentHeight;
-                        // else
-                        //     distToSufrace = currentHeight - y;
-
-                        heights[x, y, z] = currentHeight;
-                    }
-                }
-            }
-        }
-    }
-
-    private float PerlinNoise3D(float x, float y, float z)
-    {
-        float xy = Mathf.PerlinNoise(x, y);
-        float xz = Mathf.PerlinNoise(x, z);
-        float yz = Mathf.PerlinNoise(y, z);
-
-        float yx = Mathf.PerlinNoise(y, x);
-        float zx = Mathf.PerlinNoise(z, x);
-        float zy = Mathf.PerlinNoise(z, y);
-
-        return (xy + xz + yz + yx + zx + zy) / 6;
-    }
-
-    private int GetConfigIndex(float[] cubeCorners)
-    {
-        int configIndex = 0;
-
-        for (int i = 0; i < 8; i++)
-        {
-            if (cubeCorners[i] > heightTresshold)
-            {
-                configIndex |= 1 << i;
-            }
-        }
-
-        return configIndex;
-    }
-
-    private void MarchCubes()
-    {
-        vertices.Clear();
-        triangles.Clear();
+        width = cubeSize / 2;
+        height = cubeSize / 2;
 
         for (int x = 0; x < width; x++)
         {
@@ -135,71 +43,49 @@ public class MarchingCubes : MonoBehaviour
             {
                 for (int z = 0; z < width; z++)
                 {
-                    float[] cubeCorners = new float[8];
-
-                    for (int i = 0; i < 8; i++)
-                    {
-                        Vector3Int corner = new Vector3Int(x, y, z) + MarchingTable.Corners[i];
-                        cubeCorners[i] = heights[corner.x, corner.y, corner.z];
-                    }
-
-                    MarchCube(new Vector3(x, y, z), cubeCorners);
+                    vertices.Add(new PointData(new Vector3(x, y, z), Mathf.PerlinNoise((float)z / width, (float)y / height) * noiseScale));
                 }
             }
         }
     }
 
-    private void MarchCube(Vector3 position, float[] cubeCorners)
+    void MarchThroughGrid()
     {
-        int configIndex = GetConfigIndex(cubeCorners);
-
-        if (configIndex == 0 || configIndex == 255)
+        List<PointData> cube = new List<PointData>();
+        List<Vector3> edges = new List<Vector3>();
+        byte byteCube = 0b00000000;
+        for (int i = 0; i < 1; i++)
         {
-            return;
+            cube.Add(vertices[i]);
+            cube.Add(vertices[i + 1]);
+            cube.Add(vertices[i + (cubeSize / 2 * cubeSize / 2)]);
+            cube.Add(vertices[i + (cubeSize / 2 * cubeSize / 2) + 1]);
+            cube.Add(vertices[i + width]);
+            cube.Add(vertices[i + width + 1]);
+            cube.Add(vertices[i + (cubeSize / 2 * cubeSize / 2) + width]);
+            cube.Add(vertices[i + (cubeSize / 2 * cubeSize / 2) + width + 1]);
         }
 
-        int edgeIndex = 0;
-        for (int t = 0; t < 5; t++)
+        int index = 0;
+        foreach (var item in cube)
         {
-            for (int v = 0; v < 3; v++)
+            if (item.densityValue > activationThreshold)
             {
-                int triTableValue = MarchingTable.Triangles[configIndex, edgeIndex];
-
-                if (triTableValue == -1)
-                {
-                    return;
-                }
-
-                Vector3 edgeStart = position + MarchingTable.Edges[triTableValue, 0];
-                Vector3 edgeEnd = position + MarchingTable.Edges[triTableValue, 1];
-
-                Vector3 vertex = (edgeStart + edgeEnd) / 2;
-
-                vertices.Add(vertex);
-                triangles.Add(vertices.Count - 1);
-
-                edgeIndex++;
+                print($"shifting bit | {index}");
+                // Activate the corresponding bit
+                byteCube |= (byte)(1 << index++);
             }
         }
+        print(byteCube);
+        print(MarchingCubesTables.triTable[byteCube][0]);
     }
 
     private void OnDrawGizmosSelected()
     {
-        if (!visualizeNoise || !Application.isPlaying)
+        foreach (var item in vertices)
         {
-            return;
-        }
-
-        for (int x = 0; x < width + 1; x++)
-        {
-            for (int y = 0; y < height + 1; y++)
-            {
-                for (int z = 0; z < width + 1; z++)
-                {
-                    Gizmos.color = new Color(heights[x, y, z], heights[x, y, z], heights[x, y, z], 1);
-                    Gizmos.DrawSphere(new Vector3(x * resolution, y * resolution, z * resolution), 0.2f * resolution);
-                }
-            }
+            Gizmos.DrawSphere(item.position, gizmoSize);
+            Gizmos.color = new Color(item.densityValue, item.densityValue, item.densityValue);
         }
     }
 }
