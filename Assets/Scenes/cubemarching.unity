@@ -246,11 +246,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e8715fbe752c03945bfeaf42b3e1d35f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  cubeSize: 16
-  gizmoSize: 0.2
-  noiseScale: 2
-  activationThreshold: 1
-  vertices: []
+  width: 30
+  height: 30
+  resolution: 1
+  noiseScale: 1.5
+  radius: 3
+  heightTresshold: 0.5
+  visualizeNoise: 1
+  use3DNoise: 0
+  useSphere: 1
 --- !u!23 &683551891
 MeshRenderer:
   m_ObjectHideFlags: 0
