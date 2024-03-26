@@ -1,5 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
+using Unity.Mathematics;
+using UnityEditor.ShaderGraph.Internal;
 using UnityEngine;
 
 [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer))]
@@ -17,6 +19,7 @@ public class MarchingCubes : MonoBehaviour
     [SerializeField] bool visualizeNoise;
     [SerializeField] bool use3DNoise;
     [SerializeField] bool useSphere;
+    [SerializeField] bool useInterpolation;
 
     private List<Vector3> vertices = new List<Vector3>();
     private List<int> triangles = new List<int>();
@@ -28,7 +31,6 @@ public class MarchingCubes : MonoBehaviour
     {
         meshFilter = GetComponent<MeshFilter>();
         Reset();
-        //StartCoroutine(TestAll());
     }
 
     void Update()
@@ -44,21 +46,11 @@ public class MarchingCubes : MonoBehaviour
         SetMesh();
     }
 
-    private IEnumerator TestAll()
-    {
-        while (true)
-        {
-            SetHeights();
-            MarchCubes();
-            SetMesh();
-            yield return new WaitForSeconds(10f);
-        }
-    }
-
     private void SetMesh()
     {
         Mesh mesh = new Mesh();
 
+        mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
         mesh.vertices = vertices.ToArray();
         mesh.triangles = triangles.ToArray();
         mesh.RecalculateNormals();
@@ -78,8 +70,7 @@ public class MarchingCubes : MonoBehaviour
                 {
                     if (useSphere)
                     {
-                        float currentHeight = SphereShape(x, y, z);
-                        heights[x, y, z] = currentHeight;
+                        heights[x, y, z] = SphereShape(x, y, z);
                     }
 
                     if (use3DNoise)
@@ -114,10 +105,7 @@ public class MarchingCubes : MonoBehaviour
     {
         Vector3 center = new Vector3(width / 2, height / 2, width / 2);
         float distance = Vector3.Distance(new Vector3(x, y, z), center);
-
-        if (distance <= radius)
-            return 0;
-        else return heightTresshold + 0.1f;
+        return distance;
     }
 
     private float PerlinNoise3D(float x, float y, float z)
@@ -194,10 +182,24 @@ public class MarchingCubes : MonoBehaviour
                     return;
                 }
 
+
                 Vector3 edgeStart = position + MarchingTable.Edges[triTableValue, 0];
                 Vector3 edgeEnd = position + MarchingTable.Edges[triTableValue, 1];
 
-                Vector3 vertex = (edgeStart + edgeEnd) / 2;
+                float A = GetValueAtPoint(edgeStart);
+                float B = GetValueAtPoint(edgeEnd);
+
+                float mu = (heightTresshold - A) / (B - A);
+
+                print(mu);
+
+                Vector3 vertex;
+
+                if (useInterpolation)
+                    vertex = Vector3.Lerp(edgeStart, edgeEnd, mu);
+                else
+                    vertex = (edgeStart + edgeEnd) / 2;
+
 
                 vertices.Add(vertex);
                 triangles.Add(vertices.Count - 1);
@@ -205,6 +207,11 @@ public class MarchingCubes : MonoBehaviour
                 edgeIndex++;
             }
         }
+    }
+
+    float GetValueAtPoint(Vector3 point)
+    {
+        return heights[(int)point.x, (int)point.y, (int)point.z];
     }
 
     private void OnDrawGizmosSelected()
