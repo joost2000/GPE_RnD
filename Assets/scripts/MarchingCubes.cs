@@ -7,15 +7,18 @@ using UnityEngine;
 [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer))]
 public class MarchingCubes : MonoBehaviour
 {
+    [Header("Grid Size")]
     [SerializeField] private int width = 30;
     [SerializeField] private int height = 10;
 
+    [Header("Variables")]
     [SerializeField] float resolution = 1;
     [SerializeField] float noiseScale = 1;
+    [SerializeField] float heightScale = 1;
     [SerializeField] float radius;
-
     [SerializeField] private float heightTresshold = 0.5f;
 
+    [Header("Options")]
     [SerializeField] bool visualizeNoise;
     [SerializeField] bool use3DNoise;
     [SerializeField] bool useSphere;
@@ -105,7 +108,21 @@ public class MarchingCubes : MonoBehaviour
     {
         Vector3 center = new Vector3(width / 2, height / 2, width / 2);
         float distance = Vector3.Distance(new Vector3(x, y, z), center);
+
+        // Add noise to the distance
+        float noise = GenerateNoise(new Vector3(x, y, z), noiseScale, heightScale);
+        distance += noise;
+
         return distance;
+    }
+
+    private float GenerateNoise(Vector3 position, float scale, float height)
+    {
+        float x = position.x * scale;
+        float y = position.y * scale;
+        float z = position.z * scale;
+
+        return (Mathf.PerlinNoise(x, y) * height) + (Mathf.PerlinNoise(y, z) * height) + (Mathf.PerlinNoise(z, x) * height);
     }
 
     private float PerlinNoise3D(float x, float y, float z)
@@ -182,7 +199,6 @@ public class MarchingCubes : MonoBehaviour
                     return;
                 }
 
-
                 Vector3 edgeStart = position + MarchingTable.Edges[triTableValue, 0];
                 Vector3 edgeEnd = position + MarchingTable.Edges[triTableValue, 1];
 
@@ -190,8 +206,6 @@ public class MarchingCubes : MonoBehaviour
                 float B = GetValueAtPoint(edgeEnd);
 
                 float mu = (heightTresshold - A) / (B - A);
-
-                print(mu);
 
                 Vector3 vertex;
 
