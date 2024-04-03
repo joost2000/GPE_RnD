@@ -9,6 +9,7 @@ struct Triangle {
 
 RWStructuredBuffer<float4> pointAndValue;
 AppendStructuredBuffer<Triangle> triangles;
+
 float width;
 float height;
 float isoValue;
@@ -52,8 +53,6 @@ void SetHeights (int3 id : SV_DispatchThreadID)
 
     // Create triangles for current cube configuration
     for (int k = 0; triangulation[configIndex][k] != -1; k +=3) {
-        // Get indices of corner points A and B for each of the three edges
-        // of the cube that need to be joined to form the triangle.
         int a0 = cornerIndexAFromEdge[triangulation[configIndex][k]];
         int b0 = cornerIndexBFromEdge[triangulation[configIndex][k]];
 

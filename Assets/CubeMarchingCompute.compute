@@ -1,0 +1,22 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+
+RWStructuredBuffer<float> _heighValues;
+
+int _gridSize;
+
+[numthreads(8,8,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    // Check if id is in the grid
+    if (id.x > _gridSize - 1 || id.y > _gridSize - 1)
+    {
+        return;
+    }
+
+    for (int i = 0; i < _Repetitions; i++)
+    {
+        // Assign random value
+        _heighValues[indexFromId(id)] = rand(float2(id.x * _Time, id.y * _Time));
+    }
+}

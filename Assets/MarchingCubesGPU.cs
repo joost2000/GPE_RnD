@@ -2,7 +2,14 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Xml.Serialization;
+using TMPro;
 using UnityEngine;
+
+public struct MeshData
+{
+    public List<Vector3> vertices;
+    public List<int> triangles;
+}
 
 [Serializable]
 public struct helper
@@ -48,8 +55,22 @@ public class MarchingCubesGPU : MonoBehaviour
 
         meshFilter = GetComponent<MeshFilter>();
         MarchingCubes();
+        Triangle[] data;
 
-        print(SendToGPU(helpers[0].chunk.ToArray(), chunkSize));
+        foreach (var item in helpers)
+        {
+            data = SendToGPU(item.chunk.ToArray(), chunkSize);
+            // Create a new GameObject
+            GameObject newObject = new GameObject("New Object");
+
+            // Add a MeshFilter
+            MeshFilter meshFilter = newObject.AddComponent<MeshFilter>();
+
+            // Add a MeshRenderer
+            MeshRenderer meshRenderer = newObject.AddComponent<MeshRenderer>();
+
+            meshFilter.sharedMesh = SetMesh(Triangulate(data));
+        }
     }
 
     private void Update()
@@ -114,10 +135,11 @@ public class MarchingCubesGPU : MonoBehaviour
     {
         // Create a new ComputeBuffer to hold the triangles
         int numTriangles = totalSize * 10;
-        ComputeBuffer triangleBuffer = new ComputeBuffer(numTriangles, sizeof(double) * 3 * 3, ComputeBufferType.Append);
+        print($"Compute buffer size {numTriangles * sizeof(float) * 3 * 3} vs {SystemInfo.maxGraphicsBufferSize}");
+        ComputeBuffer triangleBuffer = new ComputeBuffer(numTriangles, sizeof(float) * 3 * 3, ComputeBufferType.Append);
         triangleBuffer.SetCounterValue(0);
 
-        pointsAndValuesBuffer = new ComputeBuffer(totalSize, sizeof(double) * 4);
+        pointsAndValuesBuffer = new ComputeBuffer(totalSize, sizeof(float) * 4);
         pointsAndValuesBuffer.SetData(pointAndValues);
 
         MarchingCubesShader.SetBuffer(0, "pointAndValue", pointsAndValuesBuffer);
@@ -151,7 +173,7 @@ public class MarchingCubesGPU : MonoBehaviour
 
     Triangle[] SendToGPU(PointAndValue[] pointData, int chunkSize)
     {
-        int numTriangles = chunkSize * 5;
+        int numTriangles = chunkSize * 10;
         int totalChunkSize = chunkSize * chunkSize * chunkSize;
 
         ComputeBuffer triangleBuffer = new ComputeBuffer(numTriangles, sizeof(float) * 3 * 3, ComputeBufferType.Append);
@@ -179,10 +201,10 @@ public class MarchingCubesGPU : MonoBehaviour
         int count = countArray[0];
 
         // Create an array to hold the data
-        triangleData = new Triangle[count];
+        triangleData = new Triangle[numTriangles];
 
         // Get the data from the buffer
-        triangleBuffer.GetData(triangleData, 0, 0, count);
+        triangleBuffer.GetData(triangleData, 0, 0, numTriangles);
 
         // Release the buffers
         triangleBuffer.Release();
@@ -191,21 +213,24 @@ public class MarchingCubesGPU : MonoBehaviour
         return triangleData;
     }
 
-    void Triangulate()
+    MeshData Triangulate(Triangle[] data)
     {
-        for (int i = 0; i < triangleData.Length; i++)
-        {
-            Triangle triangle = triangleData[i];
-            vertices.Add(triangle.vertexA);
-            vertices.Add(triangle.vertexB);
-            vertices.Add(triangle.vertexC);
+        List<Vector3> verts = new List<Vector3>();
+        List<int> tris = new List<int>();
 
-            triangles.Add(vertices.Count - 3);
-            triangles.Add(vertices.Count - 2);
-            triangles.Add(vertices.Count - 1);
+        for (int i = 0; i < data.Length; i++)
+        {
+            Triangle triangle = data[i];
+            verts.Add(triangle.vertexA);
+            verts.Add(triangle.vertexB);
+            verts.Add(triangle.vertexC);
+
+            tris.Add(verts.Count - 3);
+            tris.Add(verts.Count - 2);
+            tris.Add(verts.Count - 1);
         }
 
-        SetMesh();
+        return new MeshData { vertices = verts, triangles = tris };
     }
 
     private float SphereShape(Vector3 point, Vector3 center)
@@ -226,17 +251,16 @@ public class MarchingCubesGPU : MonoBehaviour
         return (Mathf.PerlinNoise(x, y) * height) + (Mathf.PerlinNoise(y, z) * height) + (Mathf.PerlinNoise(z, x) * height);
     }
 
-    private void SetMesh()
+    Mesh SetMesh(MeshData data)
     {
         Mesh mesh = new Mesh
         {
-            indexFormat = UnityEngine.Rendering.IndexFormat.UInt32,
-            vertices = vertices.ToArray(),
-            triangles = triangles.ToArray()
+            vertices = data.vertices.ToArray(),
+            triangles = data.triangles.ToArray()
         };
         mesh.RecalculateNormals();
 
-        meshFilter.mesh = mesh;
+        return mesh;
     }
 
     private void OnDrawGizmosSelected()

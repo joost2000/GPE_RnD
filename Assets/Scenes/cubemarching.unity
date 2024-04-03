@@ -154,11 +154,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d36857bcf90c0cf4a90196acd11fdd71, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  CubicSize: 100
-  chunkSize: 50
+  CubicSize: 128
+  chunkSize: 32
   noiseScale: 0.05
   heightScale: 12
-  isoValue: 32
+  isoValue: 64
   MarchingCubesShader: {fileID: 7200000, guid: 30cc719e08cdaad4496c80220f73b5e4, type: 3}
 --- !u!4 &213958264
 Transform:
@@ -393,10 +393,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e8715fbe752c03945bfeaf42b3e1d35f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  CubicSize: 256
-  noiseScale: 0.1
-  heightScale: 5
-  isoValue: 128
+  CubicSize: 128
+  noiseScale: 0.05
+  heightScale: 12
+  isoValue: 64
   useSphere: 1
   useInterpolation: 1
 --- !u!23 &683551891
