@@ -6,6 +6,6 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/Scenes/PlanetGeneration.unity
-    guid: 99c9720ab356a0642a771bea13969a05
+    path: Assets/Scenes/cubemarching.unity
+    guid: 9c623d4e5afb09e44a8d6deac46924a5
   m_configObjects: {}

@@ -9,10 +9,11 @@ struct Triangle {
 
 RWStructuredBuffer<float4> pointAndValue;
 AppendStructuredBuffer<Triangle> triangles;
+AppendStructuredBuffer<float> corners;
 
 float width;
 float height;
-float isoValue;
+uniform float isoValue;
 
 float3 interpolateVerts(float4 v1, float4 v2) {
     float t = (isoValue - v1.w) / (v2.w - v1.w);
@@ -42,14 +43,20 @@ void SetHeights (int3 id : SV_DispatchThreadID)
         pointAndValue[indexFromCoord(id.x, id.y + 1, id.z + 1)]
     };
 
-    int configIndex = 0;
-    for (int i = 0; i < 8; i++)
-    {
-        if (cubeCorners[i].w > isoValue)
-        {
-            configIndex |= 1 << i;
-        }
+    // Add corners to the buffer    
+    for (int i = 0; i < 8; i++) {
+        corners.Append(isoValue);
     }
+
+    int configIndex = 0;
+    if (cubeCorners[0].w < isoValue) configIndex |= 1;
+    if (cubeCorners[1].w < isoValue) configIndex |= 2;
+    if (cubeCorners[2].w < isoValue) configIndex |= 4;
+    if (cubeCorners[3].w < isoValue) configIndex |= 8;
+    if (cubeCorners[4].w < isoValue) configIndex |= 16;
+    if (cubeCorners[5].w < isoValue) configIndex |= 32;
+    if (cubeCorners[6].w < isoValue) configIndex |= 64;
+    if (cubeCorners[7].w < isoValue) configIndex |= 128;
 
     // Create triangles for current cube configuration
     for (int k = 0; triangulation[configIndex][k] != -1; k +=3) {
@@ -63,9 +70,9 @@ void SetHeights (int3 id : SV_DispatchThreadID)
         int b2 = cornerIndexBFromEdge[triangulation[configIndex][k+2]];
 
         Triangle tri;
-        tri.vertexA = interpolateVerts(cubeCorners[a0], cubeCorners[b0]);
-        tri.vertexB = interpolateVerts(cubeCorners[a1], cubeCorners[b1]);
-        tri.vertexC = interpolateVerts(cubeCorners[a2], cubeCorners[b2]);
+        tri.vertexA = cubeCorners[a0] + cubeCorners[b0] * 0.5;
+        tri.vertexB = cubeCorners[a1] + cubeCorners[b1] * 0.5;
+        tri.vertexC = cubeCorners[a2] + cubeCorners[b2] * 0.5;
         triangles.Append(tri);
     }
 }

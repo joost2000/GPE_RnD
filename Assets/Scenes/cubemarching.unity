@@ -154,12 +154,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d36857bcf90c0cf4a90196acd11fdd71, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  CubicSize: 128
-  chunkSize: 32
-  noiseScale: 0.05
-  heightScale: 12
-  isoValue: 64
-  MarchingCubesShader: {fileID: 7200000, guid: 30cc719e08cdaad4496c80220f73b5e4, type: 3}
+  resolution: 200
+  isoLevel: 99
+  computeShader: {fileID: 7200000, guid: 9e7e0a95e70472d428cf6a7f57b261c6, type: 3}
+  computeTriangles: {fileID: 7200000, guid: 5b018837167897940b7f67b2e4bec4b9, type: 3}
 --- !u!4 &213958264
 Transform:
   m_ObjectHideFlags: 0
@@ -169,7 +167,7 @@ Transform:
   m_GameObject: {fileID: 213958262}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -77, y: -28, z: 0}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []

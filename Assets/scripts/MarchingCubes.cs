@@ -1,26 +1,5 @@
-using System;
-using System.Collections;
 using System.Collections.Generic;
-using Unity.Mathematics;
-using UnityEditor.ShaderGraph.Internal;
 using UnityEngine;
-
-[Serializable]
-public struct PointAndValue
-{
-    public float x;
-    public float y;
-    public float z;
-    public float value;
-}
-
-[Serializable]
-public struct Triangle
-{
-    public float3 vertexC;
-    public float3 vertexB;
-    public float3 vertexA;
-};
 
 [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer))]
 public class MarchingCubes : MonoBehaviour

@@ -1,0 +1,26 @@
+#pragma kernel CSMain
+
+RWStructuredBuffer<float4> voxelData;
+
+float size;
+
+int indexFromCoord(int x, int y, int z) {
+    return z * size * size + y * size + x;
+}
+
+float EuclideanDistance(float3 pointA, float3 pointB) {
+    float3 diff = pointB - pointA;
+    return sqrt(dot(diff, diff));
+}
+
+[numthreads(8,8,8)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    //Calculate distance from id to center
+    float3 center = float3(size/2, size/2, size/2);
+    float distance = EuclideanDistance(center, float3(id.x, id.y, id.z));
+
+    //set the index of the RWStructuredBuffer to the current position and distance
+    int index = indexFromCoord(id.x, id.y, id.z);
+    voxelData[index] = float4(id.x, id.y, id.z, distance);
+}
