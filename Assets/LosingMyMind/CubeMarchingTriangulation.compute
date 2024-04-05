@@ -9,13 +9,13 @@ struct Triangle
     float3 v2;
 };
 
-
-
 RWStructuredBuffer<float4> positionalData;
 AppendStructuredBuffer<Triangle> triangleBuffer;
 
 float size;
 float isoLevel;
+float beginChunk;
+float endChunk;
 
 int indexFromCoord(int x, int y, int z) {
     return z * size * size + y * size + x;
@@ -39,6 +39,10 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     if (id.x >= size-1 || id.y >= size-1 || id.z >= size-1) {
 		return;
 	}
+
+    if (id.z < beginChunk || id.z >= endChunk) {
+        return;
+    }
 
     // 8 corners of the current cube
     float4 cubeCorners[8] = {

@@ -154,10 +154,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d36857bcf90c0cf4a90196acd11fdd71, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  resolution: 200
-  isoLevel: 99
+  resolution: 24
+  isoLevel: 3.5
+  amountOfChunks: 4
+  material: {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
   computeShader: {fileID: 7200000, guid: 9e7e0a95e70472d428cf6a7f57b261c6, type: 3}
   computeTriangles: {fileID: 7200000, guid: 5b018837167897940b7f67b2e4bec4b9, type: 3}
+  tris: []
+  chunks:
+  - chunk: []
+  - chunk: []
+  - chunk: []
+  - chunk: []
+  chunkData: []
 --- !u!4 &213958264
 Transform:
   m_ObjectHideFlags: 0
