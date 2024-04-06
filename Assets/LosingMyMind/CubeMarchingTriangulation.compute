@@ -14,8 +14,15 @@ AppendStructuredBuffer<Triangle> triangleBuffer;
 
 float size;
 float isoLevel;
-float beginChunk;
-float endChunk;
+uint width;
+uint height;
+uint depth;
+uint beginChunkX;
+uint endChunkX;
+uint beginChunkY;
+uint endChunkY;
+uint beginChunkZ;
+uint endChunkZ;
 
 int indexFromCoord(int x, int y, int z) {
     return z * size * size + y * size + x;
@@ -29,22 +36,9 @@ float3 interpolateVerts(float4 v1, float4 v2) {
 [numthreads(8,8,8)]
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
-    //keep this here for testing purposes
-    // Triangle t;
-    // t.v0 = float3(0,0,0);
-    // t.v1 = float3(1,0,0);
-    // t.v2 = float3(0,1,0);
-    // triangleBuffer.Append(t);
-
-    if (id.x >= size-1 || id.y >= size-1 || id.z >= size-1) {
-		return;
-	}
-
-    if (id.z < beginChunk || id.z >= endChunk) {
+    if(id.x < beginChunkX || id.x >= endChunkX ||id.y < beginChunkY || id.y >= endChunkY || id.z < beginChunkZ || id.z >= endChunkZ)
         return;
-    }
 
-    // 8 corners of the current cube
     float4 cubeCorners[8] = {
         positionalData[indexFromCoord(id.x, id.y, id.z)],
         positionalData[indexFromCoord(id.x + 1, id.y, id.z)],
@@ -55,6 +49,7 @@ void CSMain (uint3 id : SV_DispatchThreadID)
         positionalData[indexFromCoord(id.x + 1, id.y + 1, id.z + 1)],
         positionalData[indexFromCoord(id.x, id.y + 1, id.z + 1)]
     };
+    // 8 corners of the current cube
 
     // Calculate unique index for each cube configuration.
     // There are 256 possible values
