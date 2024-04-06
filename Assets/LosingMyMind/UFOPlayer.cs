@@ -12,32 +12,60 @@ public class UFOPlayer : MonoBehaviour
     [Header("Dependencies")]
     [SerializeField] Transform planetPosition;
     [SerializeField] Transform planetPivot;
+    [SerializeField] DeathCone deathCone;
+    [SerializeField] GameObject player;
+    [SerializeField] GameObject playerCamera;
     int planetResolution;
     float planetRadius;
     Vector3 planetRotation;
+    float spawnHeight;
+
+    RaycastHit hit;
 
     private void OnEnable()
     {
         planetResolution = planetPosition.gameObject.GetComponent<MarchingCubesGPU>().resolution;
         planetRadius = planetPosition.gameObject.GetComponent<MarchingCubesGPU>().isoLevel;
-        float spawnHeight = planetResolution - planetRadius + spawnOffset;
+        spawnHeight = planetResolution - planetRadius + spawnOffset;
         transform.position = new Vector3(0, spawnHeight, 0);
         planetRotation = new Vector3(0, 0, 0);
+    }
+
+    private void Update()
+    {
+        transform.position = new Vector3(transform.position.x, Mathf.Clamp(transform.position.y, spawnHeight, spawnHeight + (deathCone.distance / 2)), transform.position.z);
+
+        if (Input.GetKeyDown(KeyCode.Space))
+        {
+            print("shooting");
+            if (Physics.Raycast(transform.position, -transform.up, out hit))
+            {
+                // Get the voxel the player is looking at
+                print(hit.point);
+            }
+        }
+
+        if (Input.GetKeyDown(KeyCode.G))
+        {
+            player.GetComponent<PlayerScript>().enabled = true;
+            playerCamera.SetActive(true);
+            gameObject.GetComponent<UFOPlayer>().enabled = false;
+        }
     }
 
     private void FixedUpdate()
     {
         if (Input.GetKey(KeyCode.W))
-            planetRotation += Vector3.right * rotateSpeed;
-
-        if (Input.GetKey(KeyCode.S))
             planetRotation += Vector3.left * rotateSpeed;
 
+        if (Input.GetKey(KeyCode.S))
+            planetRotation += Vector3.right * rotateSpeed;
+
         if (Input.GetKey(KeyCode.A))
-            planetRotation += Vector3.forward * rotateSpeed;
+            planetRotation += Vector3.back * rotateSpeed;
 
         if (Input.GetKey(KeyCode.D))
-            planetRotation += Vector3.back * rotateSpeed;
+            planetRotation += Vector3.forward * rotateSpeed;
 
         if (Input.GetKey(KeyCode.Q))
             transform.position += Vector3.up * heightChangeSpeed;

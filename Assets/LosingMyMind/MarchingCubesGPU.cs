@@ -44,6 +44,10 @@ public class MarchingCubesGPU : MonoBehaviour
     [SerializeField] Material material;
     [SerializeField] bool visualizeGizmos;
 
+    [Header("Noise variables")]
+    [SerializeField] float noiseScale;
+    [SerializeField] float heightScale;
+
     [Header("Gameplay")]
     [SerializeField] GameObject planetPivot;
     [SerializeField] Transform planetContainer;
@@ -67,7 +71,28 @@ public class MarchingCubesGPU : MonoBehaviour
     {
         voxelData = MakeVoxelDataCPU().ToArray();
         CreateChunks();
+    }
 
+    void OnEnable()
+    {
+        PlayerScript.OnMarchingCubesEvent += UpdateMesh;
+    }
+
+    void OnDisable()
+    {
+        PlayerScript.OnMarchingCubesEvent -= UpdateMesh;
+    }
+
+    int indexFromCoord(int x, int y, int z)
+    {
+        return z * resolution * resolution + y * resolution + x;
+    }
+
+    void UpdateMesh(Vector3 voxel)
+    {
+        int index = indexFromCoord((int)voxel.x, (int)voxel.y, (int)voxel.z);
+        voxelData[index].w = 0;
+        CreateChunks();
     }
 
     void CreateChunks()
@@ -88,7 +113,6 @@ public class MarchingCubesGPU : MonoBehaviour
                     if (z == (int)amountOfChunks / 4 - 1)
                         zBeginEnd = new Vector2Int(resolution / ((int)amountOfChunks / 4) * z, resolution / ((int)amountOfChunks / 4) * (z + 1) - 1);
 
-                    print($"{xBeginEnd} | {yBeginEnd} | {zBeginEnd}");
                     CalculateTris(xBeginEnd.x, xBeginEnd.y, yBeginEnd.x, yBeginEnd.y, zBeginEnd.x, zBeginEnd.y);
                     SetMesh();
                 }
@@ -106,11 +130,32 @@ public class MarchingCubesGPU : MonoBehaviour
             {
                 for (int z = 0; z < resolution; z++)
                 {
-                    data.Add(new Vector4(x, y, z, Vector3.Distance(center, new Vector3(x, y, z))));
+                    float value = SphereShape(x, y, z, center);
+                    data.Add(new Vector4(x, y, z, value));
                 }
             }
         }
         return data;
+    }
+
+    private float SphereShape(float x, float y, float z, Vector3 center)
+    {
+        float distance = Vector3.Distance(new Vector3(x, y, z), center);
+
+        // Add noise to the distance
+        float noise = GenerateNoise(new Vector3(x, y, z), noiseScale, heightScale);
+        distance += noise;
+
+        return distance;
+    }
+
+    private float GenerateNoise(Vector3 position, float scale, float height)
+    {
+        float x = position.x * scale;
+        float y = position.y * scale;
+        float z = position.z * scale;
+
+        return (Mathf.PerlinNoise(x, y) * height) + (Mathf.PerlinNoise(y, z) * height) + (Mathf.PerlinNoise(z, x) * height);
     }
 
     void MakeVoxelData()
@@ -209,6 +254,8 @@ public class MarchingCubesGPU : MonoBehaviour
         // Add a MeshRenderer
         MeshRenderer meshRenderer = newGameObject.AddComponent<MeshRenderer>();
 
+        MeshCollider meshCollider = newGameObject.AddComponent<MeshCollider>();
+
         int vertexIndex = 0;
         int triangleIndex = 0;
 
@@ -231,6 +278,7 @@ public class MarchingCubesGPU : MonoBehaviour
         mesh.RecalculateNormals();
         meshFilter.mesh = mesh;
         meshRenderer.material = material;
+        meshCollider.sharedMesh = mesh;
     }
 
 }
