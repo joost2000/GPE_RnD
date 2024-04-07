@@ -11,7 +11,6 @@ GameObject:
   - component: {fileID: 5111522143411536730}
   - component: {fileID: 5857553210003511723}
   - component: {fileID: 2868847616636742214}
-  - component: {fileID: 2359284791577157817}
   - component: {fileID: 3678304188661310422}
   - component: {fileID: 172986920690225069}
   m_Layer: 0
@@ -87,29 +86,6 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!136 &2359284791577157817
-CapsuleCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2040075836388482889}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 2
-  m_Radius: 0.5000001
-  m_Height: 2
-  m_Direction: 1
-  m_Center: {x: 0.000000059604645, y: 0, z: -0.00000008940697}
 --- !u!114 &3678304188661310422
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -127,6 +103,8 @@ MonoBehaviour:
   cameraRotationSpeedY: 5
   lookAngleMinMax: {x: -90, y: 90}
   gravity: 0.1
+  rayLength: 0
+  radius: 0
   planetInfo: {fileID: 0}
   vCamera: {fileID: 3885149721440434946}
   rigidBody: {fileID: 172986920690225069}

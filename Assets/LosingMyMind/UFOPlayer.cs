@@ -15,6 +15,7 @@ public class UFOPlayer : MonoBehaviour
     [SerializeField] DeathCone deathCone;
     [SerializeField] GameObject player;
     [SerializeField] GameObject playerCamera;
+    [SerializeField] Transform pivot;
     int planetResolution;
     float planetRadius;
     Vector3 planetRotation;
@@ -25,15 +26,16 @@ public class UFOPlayer : MonoBehaviour
     private void OnEnable()
     {
         planetResolution = planetPosition.gameObject.GetComponent<MarchingCubesGPU>().resolution;
+        pivot.position = Vector3.one * planetResolution / 2;
         planetRadius = planetPosition.gameObject.GetComponent<MarchingCubesGPU>().isoLevel;
-        spawnHeight = planetResolution - planetRadius + spawnOffset;
-        transform.position = new Vector3(0, spawnHeight, 0);
+        spawnHeight = planetResolution + spawnOffset;
+        transform.position = new Vector3(planetResolution / 2, spawnHeight, planetResolution / 2);
         planetRotation = new Vector3(0, 0, 0);
     }
 
     private void Update()
     {
-        transform.position = new Vector3(transform.position.x, Mathf.Clamp(transform.position.y, spawnHeight, spawnHeight + (deathCone.distance / 2)), transform.position.z);
+        //transform.position = new Vector3(transform.position.x, Mathf.Clamp(transform.position.y, spawnHeight, spawnHeight + (deathCone.distance / 2)), transform.position.z);
 
         if (Input.GetKeyDown(KeyCode.Space))
         {
@@ -72,6 +74,7 @@ public class UFOPlayer : MonoBehaviour
 
         if (Input.GetKey(KeyCode.E))
             transform.position += Vector3.down * heightChangeSpeed;
-        planetPivot.eulerAngles = planetRotation;
+
+        pivot.eulerAngles = planetRotation;
     }
 }

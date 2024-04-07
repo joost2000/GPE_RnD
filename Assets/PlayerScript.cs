@@ -5,7 +5,7 @@ using UnityEngine;
 
 public class PlayerScript : MonoBehaviour
 {
-    public static Action<Vector3> OnMarchingCubesEvent;
+    public static Action<Vector3, int> OnMarchingCubesEvent;
 
     [Header("Player variables")]
     [SerializeField] float movementSpeed;
@@ -13,16 +13,19 @@ public class PlayerScript : MonoBehaviour
     [SerializeField] float cameraRotationSpeedY;
     [SerializeField] Vector2 lookAngleMinMax;
     [SerializeField] float gravity;
+    [SerializeField] float jumpForce;
 
     [Header("Terraforming")]
     [SerializeField] float rayLength;
     [SerializeField] float radius;
+    [SerializeField] LayerMask terrainMask;
 
     float verticalLookRotation;
     Vector3 desiredLocalVelocity;
-    Vector3 smoothDampVelocity;
     RaycastHit hit;
-    List<Vector3> terraFormingHits = new List<Vector3>();
+    RaycastHit[] hits;
+    [SerializeField] List<Vector3> terraFormingHits = new List<Vector3>();
+    Vector3 smoothMoveVelocity;
 
     [Header("Dependencies")]
     [SerializeField] MarchingCubesGPU planetInfo;
@@ -30,58 +33,62 @@ public class PlayerScript : MonoBehaviour
     [SerializeField] Rigidbody rigidBody;
     [SerializeField] UFOPlayer ufo;
 
+    private void Awake()
+    {
+        Time.fixedDeltaTime = 1f / 60f;
+    }
+
     private void OnEnable()
     {
         transform.position = ufo.transform.position;
-        print(transform.position);
-        print(ufo.transform.position);
         Cursor.lockState = CursorLockMode.Locked;
     }
 
-    public void TriggerMarchingCubesEvent(Vector3 voxel)
+    public void TriggerMarchingCubesEvent(Vector3 voxel, int isoValue)
     {
-        OnMarchingCubesEvent?.Invoke(voxel);
+        OnMarchingCubesEvent?.Invoke(voxel, isoValue);
     }
 
     private void Update()
     {
+        // Look rotation:
+        transform.Rotate(Vector3.up * Input.GetAxis("Mouse X") * cameraRotationSpeedX);
+        verticalLookRotation += Input.GetAxis("Mouse Y") * cameraRotationSpeedX;
+        verticalLookRotation = Mathf.Clamp(verticalLookRotation, lookAngleMinMax.x, lookAngleMinMax.y);
+        vCamera.transform.localEulerAngles = Vector3.left * verticalLookRotation;
+
         // Calculate movement:
         float inputX = Input.GetAxisRaw("Horizontal");
         float inputY = Input.GetAxisRaw("Vertical");
 
         Vector3 moveDir = new Vector3(inputX, 0, inputY).normalized;
         Vector3 targetMoveVelocity = moveDir * movementSpeed;
-        desiredLocalVelocity = Vector3.SmoothDamp(desiredLocalVelocity, targetMoveVelocity, ref smoothDampVelocity, .15f);
+        desiredLocalVelocity = Vector3.SmoothDamp(desiredLocalVelocity, targetMoveVelocity, ref smoothMoveVelocity, .15f);
 
         if (Input.GetKeyDown(KeyCode.Space))
+            if (Physics.Raycast(transform.position, -transform.up, 1f))
+                rigidBody.AddForce(transform.up * jumpForce, ForceMode.Impulse);
+
+        if (Input.GetKeyDown(KeyCode.Q))
         {
             print("shooting");
-
-            if (Physics.Raycast(vCamera.transform.position, vCamera.transform.forward, out hit))
+            if (Physics.Raycast(vCamera.transform.position + vCamera.transform.forward, vCamera.transform.forward, out hit, 1000, terrainMask))
             {
-                MeshCollider meshCollider = hit.collider as MeshCollider;
-                if (meshCollider == null || meshCollider.sharedMesh == null)
-                    return;
-
-                Mesh mesh = meshCollider.sharedMesh;
-                Vector3[] vertices = mesh.vertices;
-                int[] triangles = mesh.triangles;
-
-                // Get the local positions of the vertices of the hit triangle
-                Vector3 v0 = vertices[triangles[hit.triangleIndex * 3 + 0]];
-                Vector3 v1 = vertices[triangles[hit.triangleIndex * 3 + 1]];
-                Vector3 v2 = vertices[triangles[hit.triangleIndex * 3 + 2]];
-
-                // Interpolate the local position of the hit point
-                Vector3 hitPointLocal = (1 - hit.barycentricCoordinate.x - hit.barycentricCoordinate.y) * v0
-                    + hit.barycentricCoordinate.x * v1
-                    + hit.barycentricCoordinate.y * v2;
-
-                print(hitPointLocal);
-                terraFormingHits.Add(hitPointLocal);
-                TriggerMarchingCubesEvent(hitPointLocal);
+                TriggerMarchingCubesEvent(hit.point, 1000);
+                terraFormingHits.Add(hit.point);
             }
         }
+
+        if (Input.GetKeyDown(KeyCode.E))
+        {
+            print("shooting");
+            if (Physics.Raycast(vCamera.transform.position + vCamera.transform.forward, vCamera.transform.forward, out hit, 1000, terrainMask))
+            {
+                TriggerMarchingCubesEvent(hit.point, 0);
+                terraFormingHits.Add(hit.point);
+            }
+        }
+
     }
 
     void OnDrawGizmos()
@@ -92,32 +99,49 @@ public class PlayerScript : MonoBehaviour
 
         foreach (var item in terraFormingHits)
         {
-            Gizmos.DrawSphere(item - (Vector3.one * (planetInfo.resolution / 2)), 1f);
+            Gizmos.DrawSphere(item, .5f);
         }
 
     }
 
     private void FixedUpdate()
     {
-        // Look rotation:
-        transform.Rotate(Vector3.up * Input.GetAxis("Mouse X") * cameraRotationSpeedX);
-        verticalLookRotation += Input.GetAxis("Mouse Y") * cameraRotationSpeedY;
-        verticalLookRotation = Mathf.Clamp(verticalLookRotation, lookAngleMinMax.x, lookAngleMinMax.y);
-        vCamera.transform.localEulerAngles = Vector3.left * verticalLookRotation;
+        Vector3 gravityDirection = (Vector3.one * planetInfo.resolution / 2 - transform.position).normalized;
 
-        Vector3 planetCentre = Vector3.zero;
-        Vector3 gravityUp = (rigidBody.position - planetCentre).normalized;
+        rigidBody.AddForce(gravityDirection * gravity);
 
-        // Align body's up axis with the centre of planet
-        Vector3 localUp = rigidBody.rotation * Vector3.up;
-        rigidBody.rotation = Quaternion.FromToRotation(localUp, gravityUp) * rigidBody.rotation;
+        // Calculate the rotation quaternion to align the capsule's -transform.up with the direction vector
+        Quaternion rotation = Quaternion.FromToRotation(-transform.up, gravityDirection);
 
-        Vector3 currentLocalVelocity = Quaternion.Inverse(rigidBody.rotation) * rigidBody.velocity;
+        // Apply the rotation to the capsule
+        transform.rotation = rotation * transform.rotation;
 
-        float localYVelocity = currentLocalVelocity.y - gravity;
+        Vector3 localUp = LocalToWorldVector(rigidBody.rotation, Vector3.up);
+        rigidBody.velocity = CalculateNewVelocity(localUp);
+    }
 
-        Vector3 desiredGlobalVelocity = rigidBody.rotation * desiredLocalVelocity;
+    Vector3 CalculateNewVelocity(Vector3 localUp)
+    {
+        // Apply movement and gravity to rigidbody
+        float deltaTime = Time.fixedDeltaTime;
+        Vector3 currentLocalVelocity = WorldToLocalVector(rigidBody.rotation, rigidBody.velocity);
+
+        float localYVelocity = currentLocalVelocity.y + (-gravity) * deltaTime;
+
+        Vector3 desiredGlobalVelocity = LocalToWorldVector(rigidBody.rotation, desiredLocalVelocity);
         desiredGlobalVelocity += localUp * localYVelocity;
-        rigidBody.velocity = desiredGlobalVelocity;
+        return desiredGlobalVelocity;
+    }
+
+    // Transform vector from local space to world space (based on rotation)
+    public static Vector3 LocalToWorldVector(Quaternion rotation, Vector3 vector)
+    {
+        return rotation * vector;
+    }
+
+    // Transform vector from world space to local space (based on rotation)
+    public static Vector3 WorldToLocalVector(Quaternion rotation, Vector3 vector)
+    {
+        return Quaternion.Inverse(rotation) * vector;
     }
 }
