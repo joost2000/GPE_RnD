@@ -35,18 +35,6 @@ public class UFOPlayer : MonoBehaviour
 
     private void Update()
     {
-        //transform.position = new Vector3(transform.position.x, Mathf.Clamp(transform.position.y, spawnHeight, spawnHeight + (deathCone.distance / 2)), transform.position.z);
-
-        if (Input.GetKeyDown(KeyCode.Space))
-        {
-            print("shooting");
-            if (Physics.Raycast(transform.position, -transform.up, out hit))
-            {
-                // Get the voxel the player is looking at
-                print(hit.point);
-            }
-        }
-
         if (Input.GetKeyDown(KeyCode.G))
         {
             player.GetComponent<PlayerScript>().enabled = true;
@@ -58,16 +46,16 @@ public class UFOPlayer : MonoBehaviour
     private void FixedUpdate()
     {
         if (Input.GetKey(KeyCode.W))
-            planetRotation += Vector3.left * rotateSpeed;
-
-        if (Input.GetKey(KeyCode.S))
             planetRotation += Vector3.right * rotateSpeed;
 
+        if (Input.GetKey(KeyCode.S))
+            planetRotation += Vector3.left * rotateSpeed;
+
         if (Input.GetKey(KeyCode.A))
-            planetRotation += Vector3.back * rotateSpeed;
+            planetRotation += Vector3.forward * rotateSpeed;
 
         if (Input.GetKey(KeyCode.D))
-            planetRotation += Vector3.forward * rotateSpeed;
+            planetRotation += Vector3.back * rotateSpeed;
 
         if (Input.GetKey(KeyCode.Q))
             transform.position += Vector3.up * heightChangeSpeed;

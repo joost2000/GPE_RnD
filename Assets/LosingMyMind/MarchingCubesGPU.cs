@@ -55,9 +55,8 @@ public class MarchingCubesGPU : MonoBehaviour
     [SerializeField] bool visualizeGizmos;
 
     [Header("Noise variables")]
-    [SerializeField] float noiseScale;
+    [SerializeField] float noiseFrequency;
     [SerializeField] float heightScale;
-    [SerializeField] float minDistance;
 
     [Header("Gameplay")]
     [SerializeField] GameObject planetPivot;
@@ -111,18 +110,38 @@ public class MarchingCubesGPU : MonoBehaviour
 
     void UpdateMesh(Vector3 voxel, int updatedIsoValue)
     {
-        int index = indexFromCoord((int)voxel.z, (int)voxel.y, (int)voxel.x);
-        Vector3 vectorData = new Vector3(voxelData[index].z, voxelData[index].y, voxelData[index].x);
-        voxelData[index].w = updatedIsoValue;
+        Vector3[] cubeHit = {
+            voxel + Vector3.left,
+            voxel + Vector3.right,
+            voxel + Vector3.forward,
+            voxel + Vector3.back,
+            voxel + Vector3.up,
+            voxel + Vector3.down,
+            voxel + Vector3.left + Vector3.up,
+            voxel + Vector3.right + Vector3.up,
+            voxel + Vector3.forward + Vector3.up,
+            voxel + Vector3.back + Vector3.up,
+            voxel + Vector3.left - Vector3.up,
+            voxel + Vector3.right - Vector3.up,
+            voxel + Vector3.forward - Vector3.up,
+            voxel + Vector3.back - Vector3.up,
+            voxel
+        };
+
+        foreach (var item in cubeHit)
+            voxelData[indexFromCoord((int)item.z, (int)item.y, (int)item.x)].w = updatedIsoValue;
+
         GameObject chunkToUpdate = null;
+        int index = indexFromCoord((int)voxel.z, (int)voxel.y, (int)voxel.x);
+        voxelData[index].w = updatedIsoValue;
 
         for (int i = 0; i < chunkBeginEnds.Count; i++)
         {
-            if (vectorData.x >= chunkBeginEnds[i].xBeginEnd.x && vectorData.x < chunkBeginEnds[i].xBeginEnd.y)
+            if (voxelData[index].z >= chunkBeginEnds[i].xBeginEnd.x && voxelData[index].z < chunkBeginEnds[i].xBeginEnd.y)
             {
-                if (vectorData.y >= chunkBeginEnds[i].yBeginEnd.x && vectorData.y < chunkBeginEnds[i].yBeginEnd.y)
+                if (voxelData[index].y >= chunkBeginEnds[i].yBeginEnd.x && voxelData[index].y < chunkBeginEnds[i].yBeginEnd.y)
                 {
-                    if (vectorData.z >= chunkBeginEnds[i].zBeginEnd.x && vectorData.z < chunkBeginEnds[i].zBeginEnd.y)
+                    if (voxelData[index].x >= chunkBeginEnds[i].zBeginEnd.x && voxelData[index].x < chunkBeginEnds[i].zBeginEnd.y)
                     {
                         CalculateTris(chunkBeginEnds[i].xBeginEnd.x,
                         chunkBeginEnds[i].xBeginEnd.y,
@@ -132,16 +151,11 @@ public class MarchingCubesGPU : MonoBehaviour
                         chunkBeginEnds[i].zBeginEnd.y);
 
                         chunkToUpdate = chunkBeginEnds[i].chunk;
+                        print(i);
                         break;
                     }
                 }
             }
-        }
-
-        if (!chunkToUpdate)
-        {
-            print("yo you fucked up");
-            return;
         }
 
         var vertices = new Vector3[tris.Length * 3];
@@ -204,7 +218,7 @@ public class MarchingCubesGPU : MonoBehaviour
                     });
                     stopwatch.Stop();
                     //Debug.Log("Timer: " + stopwatch.Elapsed);
-                    Debug.Log($"Crated a chunk in: {stopwatch.ElapsedMilliseconds}ms ");
+                    //Debug.Log($"Crated a chunk in: {stopwatch.ElapsedMilliseconds}ms ");
                     stopwatch.Reset();
                 }
             }
@@ -230,74 +244,22 @@ public class MarchingCubesGPU : MonoBehaviour
         return data;
     }
 
-    List<Vector3> MakeVoxelDataCPUVec3()
-    {
-        List<Vector3> data = new List<Vector3>();
-        Vector3 center = Vector3.one * (resolution / 2);
-        for (int x = 0; x < resolution; x++)
-        {
-            for (int y = 0; y < resolution; y++)
-            {
-                for (int z = 0; z < resolution; z++)
-                {
-                    data.Add(new Vector4(x, y, z));
-                }
-            }
-        }
-        return data;
-    }
-
-
     private float SphereShape(float x, float y, float z, Vector3 center)
     {
         float distance = Vector3.Distance(new Vector3(x, y, z), center);
         // Add noise to the distance
-        float noise = GenerateNoise(new Vector3(x, y, z), noiseScale, heightScale);
-        float newDistance = distance + noise;
-        if (newDistance < distance)
-            return distance;
-        else return newDistance;
+        float noise = GenerateNoise(new Vector3(x, y, z), noiseFrequency, heightScale);
+        return distance -= noise;
 
     }
 
     private float GenerateNoise(Vector3 position, float scale, float height)
     {
+        int randomOffset = UnityEngine.Random.Range(0, 100);
         float x = position.x * scale;
         float y = position.y * scale;
         float z = position.z * scale;
-        return (PerlinNoise3D(x, y, z) * height) + (PerlinNoise3D(x, y, z) * height) + (PerlinNoise3D(x, y, z) * height);
-        // return (Mathf.PerlinNoise(x, y) * height) + (Mathf.PerlinNoise(y, z) * height) + (Mathf.PerlinNoise(z, x) * height);
-    }
-
-    float PerlinNoise3D(float x, float y, float z)
-    {
-        var xy = Mathf.PerlinNoise(x, y);
-        var xz = Mathf.PerlinNoise(x, z);
-
-        var yx = Mathf.PerlinNoise(y, x);
-        var yz = Mathf.PerlinNoise(y, z);
-
-        var zx = Mathf.PerlinNoise(z, x);
-        var zy = Mathf.PerlinNoise(z, y);
-        return (xy + xz + yx + yz + zx + zy) / 6;
-    }
-
-    void MakeVoxelData()
-    {
-        int totalSize = (int)resolution * (int)resolution * (int)resolution;
-        voxelDataBuffer = new ComputeBuffer(totalSize, sizeof(float) * 4, ComputeBufferType.Default);
-
-        voxelDataBuffer.SetData(new Vector4[totalSize]);
-
-        computeShader.SetBuffer(0, "voxelData", voxelDataBuffer);
-        computeShader.SetInt("size", (int)resolution);
-        computeShader.Dispatch(0, (int)resolution / 8, (int)resolution / 8, (int)resolution / 8);
-
-        voxelData = new Vector4[totalSize];
-
-        voxelDataBuffer.GetData(voxelData);
-
-        voxelDataBuffer.Release();
+        return (Mathf.PerlinNoise(x, y) * height) + (Mathf.PerlinNoise(y, z) * height) + (Mathf.PerlinNoise(z, x) * height) / 3;
     }
 
     private void OnDrawGizmos()

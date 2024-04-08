@@ -63,10 +63,16 @@ public class PlayerScript : MonoBehaviour
             if (Physics.Raycast(transform.position, -transform.up, 1f))
                 rigidBody.AddForce(transform.up * jumpForce, ForceMode.Impulse);
 
+        if (Input.GetKeyDown(KeyCode.Escape))
+        {
+            transform.position = ufo.transform.position;
+        }
+
         if (Input.GetKeyDown(KeyCode.Q))
         {
             print("shooting");
-            if (Physics.Raycast(vCamera.transform.position + vCamera.transform.forward, vCamera.transform.forward, out hit, 1000, terrainMask))
+            if (Physics.Raycast(vCamera.transform.position + vCamera.transform.forward,
+                                vCamera.transform.forward, out hit, 1000, terrainMask))
             {
                 TriggerMarchingCubesEvent(hit.point, 1000);
                 terraFormingHits.Add(hit.point);
@@ -76,13 +82,13 @@ public class PlayerScript : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.E))
         {
             print("shooting");
-            if (Physics.Raycast(vCamera.transform.position + vCamera.transform.forward, vCamera.transform.forward, out hit, 1000, terrainMask))
+            if (Physics.Raycast(vCamera.transform.position + vCamera.transform.forward,
+                                vCamera.transform.forward, out hit, 1000, terrainMask))
             {
                 TriggerMarchingCubesEvent(hit.point, 0);
                 terraFormingHits.Add(hit.point);
             }
         }
-
     }
 
     void OnDrawGizmos()
@@ -96,6 +102,18 @@ public class PlayerScript : MonoBehaviour
             Gizmos.DrawSphere(item, .5f);
         }
 
+        if (hits != null)
+        {
+            Gizmos.color = Color.red;
+            foreach (var hit in hits)
+            {
+                Gizmos.DrawSphere(hit.point, 0.5f); // Draw a small sphere at each hit point
+            }
+
+            // Draw the sphere cast
+            Gizmos.color = Color.blue;
+            Gizmos.DrawWireSphere(vCamera.transform.position + vCamera.transform.forward, 5f);
+        }
     }
 
     private void FixedUpdate()
