@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Unity.Mathematics;
 using UnityEngine;
 
 [Serializable]
@@ -56,6 +57,7 @@ public class MarchingCubesGPU : MonoBehaviour
     [Header("Noise variables")]
     [SerializeField] float noiseScale;
     [SerializeField] float heightScale;
+    [SerializeField] float minDistance;
 
     [Header("Gameplay")]
     [SerializeField] GameObject planetPivot;
@@ -80,8 +82,16 @@ public class MarchingCubesGPU : MonoBehaviour
 
     private void Start()
     {
+        var stopwatch = new System.Diagnostics.Stopwatch();
+        stopwatch.Start();
         voxelData = MakeVoxelDataCPU().ToArray();
+        // CalculateTris(0, resolution - 1, 0, resolution - 1, 0, resolution - 1);
+        // SetMesh();
         CreateChunks();
+        stopwatch.Stop();
+        //Debug.Log("Timer: " + stopwatch.Elapsed);
+        Debug.Log($"Created all chunks in: {stopwatch.ElapsedMilliseconds}ms");
+        stopwatch.Reset();
     }
 
     void OnEnable()
@@ -128,44 +138,6 @@ public class MarchingCubesGPU : MonoBehaviour
             }
         }
 
-        // Vector3[] corners = new Vector3[8];
-
-        // for (int i = 0; i < MarchingTable.Corners.Length; i++)
-        // {
-        //     Vector3 currentCorner = vectorData + MarchingTable.Corners[i];
-        //     int cornerIndex = indexFromCoord((int)currentCorner.z, (int)currentCorner.y, (int)currentCorner.x);
-        //     voxelData[cornerIndex].w = updatedIsoValue;
-        //     corners[i] = currentCorner;
-        // }
-
-        // foreach (var item in corners)
-        // {
-        //     for (int i = 0; i < chunkBeginEnds.Count; i++)
-        //     {
-        //         if (item.x >= chunkBeginEnds[i].xBeginEnd.x && item.x < chunkBeginEnds[i].xBeginEnd.y)
-        //         {
-        //             if (item.y >= chunkBeginEnds[i].yBeginEnd.x && item.y < chunkBeginEnds[i].yBeginEnd.y)
-        //             {
-        //                 if (item.z >= chunkBeginEnds[i].zBeginEnd.x && item.z < chunkBeginEnds[i].zBeginEnd.y)
-        //                 {
-        //                     CalculateTris(chunkBeginEnds[i].xBeginEnd.x,
-        //                     chunkBeginEnds[i].xBeginEnd.y,
-        //                     chunkBeginEnds[i].yBeginEnd.x,
-        //                     chunkBeginEnds[i].yBeginEnd.y,
-        //                     chunkBeginEnds[i].zBeginEnd.x,
-        //                     chunkBeginEnds[i].zBeginEnd.y);
-
-        //                     chunkToUpdate = chunkBeginEnds[i].chunk;
-        //                     print(i);
-        //                     print("reached here, break");
-        //                     break;
-        //                 }
-        //             }
-        //         }
-        //     }
-        // }
-
-
         if (!chunkToUpdate)
         {
             print("yo you fucked up");
@@ -202,12 +174,15 @@ public class MarchingCubesGPU : MonoBehaviour
 
     void CreateChunks()
     {
+
         for (int x = 0; x < (int)amountOfChunks / 4; x++)
         {
             for (int y = 0; y < 2; y++)
             {
                 for (int z = 0; z < (int)amountOfChunks / 4; z++)
                 {
+                    var stopwatch = new System.Diagnostics.Stopwatch();
+                    stopwatch.Start();
                     Vector2Int _xBeginEnd = new Vector2Int(resolution / ((int)amountOfChunks / 4) * x, resolution / ((int)amountOfChunks / 4) * (x + 1));
                     Vector2Int _yBeginEnd = new Vector2Int(resolution / 2 * y, resolution / 2 * (y + 1));
                     Vector2Int _zBeginEnd = new Vector2Int(resolution / ((int)amountOfChunks / 4) * z, resolution / ((int)amountOfChunks / 4) * (z + 1));
@@ -227,9 +202,14 @@ public class MarchingCubesGPU : MonoBehaviour
                         zBeginEnd = _zBeginEnd,
                         chunk = planetContainer.GetChild(planetContainer.childCount - 1).gameObject
                     });
+                    stopwatch.Stop();
+                    //Debug.Log("Timer: " + stopwatch.Elapsed);
+                    Debug.Log($"Crated a chunk in: {stopwatch.ElapsedMilliseconds}ms ");
+                    stopwatch.Reset();
                 }
             }
         }
+
     }
 
     List<Vector4> MakeVoxelDataCPU()
@@ -250,15 +230,34 @@ public class MarchingCubesGPU : MonoBehaviour
         return data;
     }
 
+    List<Vector3> MakeVoxelDataCPUVec3()
+    {
+        List<Vector3> data = new List<Vector3>();
+        Vector3 center = Vector3.one * (resolution / 2);
+        for (int x = 0; x < resolution; x++)
+        {
+            for (int y = 0; y < resolution; y++)
+            {
+                for (int z = 0; z < resolution; z++)
+                {
+                    data.Add(new Vector4(x, y, z));
+                }
+            }
+        }
+        return data;
+    }
+
+
     private float SphereShape(float x, float y, float z, Vector3 center)
     {
         float distance = Vector3.Distance(new Vector3(x, y, z), center);
-
         // Add noise to the distance
         float noise = GenerateNoise(new Vector3(x, y, z), noiseScale, heightScale);
-        distance += noise;
+        float newDistance = distance + noise;
+        if (newDistance < distance)
+            return distance;
+        else return newDistance;
 
-        return distance;
     }
 
     private float GenerateNoise(Vector3 position, float scale, float height)
@@ -266,8 +265,21 @@ public class MarchingCubesGPU : MonoBehaviour
         float x = position.x * scale;
         float y = position.y * scale;
         float z = position.z * scale;
+        return (PerlinNoise3D(x, y, z) * height) + (PerlinNoise3D(x, y, z) * height) + (PerlinNoise3D(x, y, z) * height);
+        // return (Mathf.PerlinNoise(x, y) * height) + (Mathf.PerlinNoise(y, z) * height) + (Mathf.PerlinNoise(z, x) * height);
+    }
 
-        return (Mathf.PerlinNoise(x, y) * height) + (Mathf.PerlinNoise(y, z) * height) + (Mathf.PerlinNoise(z, x) * height);
+    float PerlinNoise3D(float x, float y, float z)
+    {
+        var xy = Mathf.PerlinNoise(x, y);
+        var xz = Mathf.PerlinNoise(x, z);
+
+        var yx = Mathf.PerlinNoise(y, x);
+        var yz = Mathf.PerlinNoise(y, z);
+
+        var zx = Mathf.PerlinNoise(z, x);
+        var zy = Mathf.PerlinNoise(z, y);
+        return (xy + xz + yx + yz + zx + zy) / 6;
     }
 
     void MakeVoxelData()

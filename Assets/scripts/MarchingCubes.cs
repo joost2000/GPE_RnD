@@ -26,10 +26,19 @@ public class MarchingCubes : MonoBehaviour
 
     void Start()
     {
+        var stopwatch = new System.Diagnostics.Stopwatch();
+        stopwatch.Start();
+
+        // your function here..
+
         width = CubicSize;
         height = CubicSize;
         meshFilter = GetComponent<MeshFilter>();
         Reset();
+        stopwatch.Stop();
+        //Debug.Log("Timer: " + stopwatch.Elapsed);
+        Debug.Log("Timer: ms" + stopwatch.ElapsedMilliseconds + gameObject.name);
+        stopwatch.Reset();
     }
 
     void Update()

@@ -51,12 +51,6 @@ public class PlayerScript : MonoBehaviour
 
     private void Update()
     {
-        // Look rotation:
-        transform.Rotate(Vector3.up * Input.GetAxis("Mouse X") * cameraRotationSpeedX);
-        verticalLookRotation += Input.GetAxis("Mouse Y") * cameraRotationSpeedX;
-        verticalLookRotation = Mathf.Clamp(verticalLookRotation, lookAngleMinMax.x, lookAngleMinMax.y);
-        vCamera.transform.localEulerAngles = Vector3.left * verticalLookRotation;
-
         // Calculate movement:
         float inputX = Input.GetAxisRaw("Horizontal");
         float inputY = Input.GetAxisRaw("Vertical");
@@ -106,6 +100,12 @@ public class PlayerScript : MonoBehaviour
 
     private void FixedUpdate()
     {
+        // Look rotation:
+        transform.Rotate(Vector3.up * Input.GetAxis("Mouse X") * cameraRotationSpeedX);
+        verticalLookRotation += Input.GetAxis("Mouse Y") * cameraRotationSpeedX;
+        verticalLookRotation = Mathf.Clamp(verticalLookRotation, lookAngleMinMax.x, lookAngleMinMax.y);
+        vCamera.transform.localEulerAngles = Vector3.left * verticalLookRotation;
+
         Vector3 gravityDirection = (Vector3.one * planetInfo.resolution / 2 - transform.position).normalized;
 
         rigidBody.AddForce(gravityDirection * gravity);
