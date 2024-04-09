@@ -442,7 +442,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d36857bcf90c0cf4a90196acd11fdd71, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  resolution: 32
+  resolution: 16
   isoLevel: 2
   amountOfChunks: 2
   material: {fileID: 2100000, guid: 00fae56faf1ba7240b9b1011ae508c5b, type: 2}
