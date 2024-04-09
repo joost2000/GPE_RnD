@@ -5,7 +5,10 @@ EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
   m_Scenes:
-  - enabled: 1
+  - enabled: 0
     path: Assets/Scenes/cubemarching.unity
     guid: 9c623d4e5afb09e44a8d6deac46924a5
+  - enabled: 1
+    path: Assets/Scenes/New Scene.unity
+    guid: 988e52e2ffe4c994a8ac7a1f89fbbc81
   m_configObjects: {}

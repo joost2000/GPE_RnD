@@ -1,11 +1,11 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
-using Unity.Mathematics;
+using System.Threading;
 using UnityEngine;
 
 [Serializable]
-struct Triangle
+public struct Triangle
 {
     public Vector3 p1;
     public Vector3 p2;
@@ -18,6 +18,18 @@ struct ChunkData
 }
 
 [Serializable]
+struct ChunkVertices
+{
+    public Vector4[] data;
+}
+
+[Serializable]
+struct TriangleCollection
+{
+    public Triangle[] data;
+}
+
+[Serializable]
 struct ChunkBeginEnd
 {
     public Vector2Int xBeginEnd;
@@ -26,12 +38,23 @@ struct ChunkBeginEnd
     public GameObject chunk;
 }
 
+[Serializable]
+struct testing
+{
+    public Vector2 xBeginEnd;
+    public Vector2 yBeginEnd;
+    public Vector2 zBeginEnd;
+}
+
 enum AmountOfChunks
 {
+    Chunk2 = 2,
     Chunk4 = 4,
     Chunk8 = 8,
     Chunk16 = 16,
-    Chunk32 = 32
+    Chunk32 = 32,
+    Chunk64 = 64,
+    Chunk128 = 128
 }
 
 enum Resolution
@@ -53,6 +76,7 @@ public class MarchingCubesGPU : MonoBehaviour
     [SerializeField] AmountOfChunks amountOfChunks;
     [SerializeField] Material material;
     [SerializeField] bool visualizeGizmos;
+    [SerializeField] GameObject prefab;
 
     [Header("Noise variables")]
     [SerializeField] float noiseFrequency;
@@ -63,34 +87,190 @@ public class MarchingCubesGPU : MonoBehaviour
     [SerializeField] Transform planetContainer;
 
     [Header("ComputeShader")]
-    public ComputeShader computeShader;
+    public ComputeShader computeVoxelData;
     public ComputeShader computeTriangles;
 
     [Header("Debugging")]
     Triangle[] tris;
-    [SerializeField] List<Triangle[]> triangleChunks = new List<Triangle[]>();
-    [SerializeField] List<ChunkBeginEnd> chunkBeginEnds = new List<ChunkBeginEnd>();
-    [SerializeField] List<GameObject> chunkGameObjects = new List<GameObject>();
+    [SerializeField] List<TriangleCollection> triangleChunks = new List<TriangleCollection>();
+    List<ChunkBeginEnd> chunkBeginEnds = new List<ChunkBeginEnd>();
     Vector4[] voxelData;
+    [SerializeField] List<ChunkVertices> chunkedVoxelData = new List<ChunkVertices>();
     Vector4[] testing;
 
     ComputeBuffer triangleBuffer;
-    ComputeBuffer voxelDataBuffer;
     ComputeBuffer positionalDataBuffer;
     ComputeBuffer triCountBuffer;
+    ComputeBuffer voxelDataBuffer;
+    ComputeBuffer indexAndValueBuffer;
+    ComputeBuffer indexAndValueCount;
 
     private void Start()
     {
-        var stopwatch = new System.Diagnostics.Stopwatch();
-        stopwatch.Start();
-        voxelData = MakeVoxelDataCPU().ToArray();
-        // CalculateTris(0, resolution - 1, 0, resolution - 1, 0, resolution - 1);
-        // SetMesh();
-        CreateChunks();
-        stopwatch.Stop();
-        //Debug.Log("Timer: " + stopwatch.Elapsed);
-        Debug.Log($"Created all chunks in: {stopwatch.ElapsedMilliseconds}ms");
-        stopwatch.Reset();
+        StartCoroutine(CreateVoxelDataGPU());
+        DisposeAllBuffers();
+    }
+
+    void DisposeAllBuffers()
+    {
+        triangleBuffer?.Dispose();
+        positionalDataBuffer?.Dispose();
+        triCountBuffer?.Dispose();
+        voxelDataBuffer?.Dispose();
+    }
+
+    private void Update()
+    {
+        if (Input.GetKeyDown(KeyCode.Space))
+        {
+            chunkedVoxelData.RemoveAt(chunkedVoxelData.Count - 1);
+        }
+    }
+
+    IEnumerator CreateVoxelDataGPU()
+    {
+        int totalSize = resolution * resolution * resolution;
+        int chunkSize = resolution / (int)amountOfChunks;
+        int totalChunkSize = chunkSize * chunkSize * chunkSize;
+
+        for (int x = 0; x < (int)amountOfChunks; x++)
+        {
+            for (int y = 0; y < (int)amountOfChunks; y++)
+            {
+                for (int z = 0; z < (int)amountOfChunks; z++)
+                {
+                    voxelDataBuffer = new ComputeBuffer(totalChunkSize, sizeof(float) * 4, ComputeBufferType.Structured);
+
+                    voxelDataBuffer.SetData(new Vector4[totalChunkSize]);
+                    computeVoxelData.SetBuffer(0, "voxelData", voxelDataBuffer);
+                    computeVoxelData.SetFloat("size", resolution);
+                    computeVoxelData.SetFloat("chunkSize", chunkSize);
+
+                    //setting the min and max dists
+                    computeVoxelData.SetFloats("xBeginEnd", chunkSize * x, chunkSize * (x + 1));
+                    computeVoxelData.SetFloats("yBeginEnd", chunkSize * y, chunkSize * (y + 1));
+                    computeVoxelData.SetFloats("zBeginEnd", chunkSize * z, chunkSize * (z + 1));
+
+                    computeVoxelData.Dispatch(0, resolution / 8, resolution / 8, resolution / 8);
+
+                    Vector4[] _ = new Vector4[totalChunkSize];
+                    voxelDataBuffer.GetData(_);
+
+                    chunkedVoxelData.Add(new ChunkVertices { data = _ });
+
+                    GameObject cube = Instantiate(prefab);
+
+                    cube.transform.localScale = Vector3.one * chunkSize;
+
+                    Vector3 center = new Vector3((_[0].x + _[_.Length - 1].x) / 2, (_[0].y + _[_.Length - 1].y) / 2, (_[0].z + _[_.Length - 1].z) / 2);
+                    cube.transform.position = center;
+
+                    voxelDataBuffer.Release(); // Release voxelDataBuffer after each iteration
+
+                    //StartCoroutine(SendChunkToGPU(_, chunkSize));
+
+                    yield return new WaitForSecondsRealtime(0.01f);
+                }
+            }
+        }
+        voxelDataBuffer.Dispose();
+        yield return null;
+    }
+
+    IEnumerator SendChunkToGPU(Vector4[] chunkData, int chunkSize)
+    {
+        Vector2 xBeginEnd = new Vector2(chunkData[0].x, chunkData[chunkData.Length - 1].x);
+        Vector2 yBeginEnd = new Vector2(chunkData[0].y, chunkData[chunkData.Length - 1].y);
+        Vector2 zBeginEnd = new Vector2(chunkData[0].z, chunkData[chunkData.Length - 1].z);
+
+        triCountBuffer = new ComputeBuffer(1, sizeof(int), ComputeBufferType.Raw);
+
+        voxelDataBuffer = new ComputeBuffer(chunkData.Length, sizeof(float) * 4, ComputeBufferType.Default);
+        voxelDataBuffer.SetData(chunkData);
+
+        triangleBuffer = new ComputeBuffer(chunkData.Length * 5, sizeof(float) * 3 * 3, ComputeBufferType.Append);
+        triangleBuffer.SetCounterValue(0);
+
+        // set the buffers in our compute shader
+        computeTriangles.SetBuffer(0, "positionalData", voxelDataBuffer);
+        computeTriangles.SetBuffer(0, "triangleBuffer", triangleBuffer);
+
+        // set the variables of our compute shader
+        computeTriangles.SetFloat("isoLevel", isoLevel);
+        computeTriangles.SetInt("chunkSize", chunkSize);
+
+        //setting the min and max dists
+        computeVoxelData.SetFloats("xBeginEnd", xBeginEnd.x, xBeginEnd.y);
+        computeVoxelData.SetFloats("yBeginEnd", yBeginEnd.x, yBeginEnd.y);
+        computeVoxelData.SetFloats("zBeginEnd", zBeginEnd.x, zBeginEnd.y);
+
+        // Dispatch
+        computeTriangles.Dispatch(0, resolution / 8, resolution / 8, resolution / 8);
+
+        // Get number of triangles in the triangle buffer
+        ComputeBuffer.CopyCount(triangleBuffer, triCountBuffer, 0);
+        int[] triCountArray = { 0 };
+        triCountBuffer.GetData(triCountArray);
+        int numTris = triCountArray[0];
+
+        Triangle[] tris = new Triangle[numTris];
+        triangleBuffer.GetData(tris);
+
+        triangleChunks.Add(new TriangleCollection { data = tris });
+
+        StartCoroutine(MakeMesh(tris));
+
+        voxelDataBuffer.Release();
+        triangleBuffer.Release();
+        triCountBuffer.Release();
+
+        yield return null;
+    }
+
+    IEnumerator MakeMesh(Triangle[] triangles)
+    {
+        var mesh = new Mesh();
+        var vertices = new Vector3[triangles.Length * 3];
+        var meshTriangles = new int[triangles.Length * 3];
+
+        // Create a new GameObject
+        GameObject newGameObject = new GameObject("Chunk");
+
+        newGameObject.transform.parent = planetContainer;
+
+        // Add a MeshFilter
+        MeshFilter meshFilter = newGameObject.AddComponent<MeshFilter>();
+
+        // Add a MeshRenderer
+        MeshRenderer meshRenderer = newGameObject.AddComponent<MeshRenderer>();
+
+        MeshCollider meshCollider = newGameObject.AddComponent<MeshCollider>();
+
+        int vertexIndex = 0;
+        int triangleIndex = 0;
+
+        for (int i = 0; i < triangles.Length; i++)
+        {
+            vertices[vertexIndex] = triangles[i].p3;
+            vertices[vertexIndex + 1] = triangles[i].p2;
+            vertices[vertexIndex + 2] = triangles[i].p1;
+
+            meshTriangles[triangleIndex] = vertexIndex;
+            meshTriangles[triangleIndex + 1] = vertexIndex + 1;
+            meshTriangles[triangleIndex + 2] = vertexIndex + 2;
+
+            vertexIndex += 3;
+            triangleIndex += 3;
+        }
+
+        mesh.vertices = vertices;
+        mesh.triangles = meshTriangles;
+        mesh.RecalculateNormals();
+        meshFilter.mesh = mesh;
+        meshRenderer.material = material;
+        //meshCollider.sharedMesh = mesh;
+
+        yield return null;
     }
 
     void OnEnable()
@@ -266,11 +446,6 @@ public class MarchingCubesGPU : MonoBehaviour
     {
         if (!visualizeGizmos)
             return;
-
-        foreach (var item in voxelData)
-        {
-            Gizmos.DrawWireSphere(new Vector3(item.x, item.y, item.z), 0.1f);
-        }
     }
 
     void CalculateTris(int beginChunkX, int endChunkX, int beginChunkY, int endChunkY, int beginChunkZ, int endChunkZ)
@@ -310,7 +485,7 @@ public class MarchingCubesGPU : MonoBehaviour
         tris = new Triangle[numTris];
         triangleBuffer.GetData(tris, 0, 0, numTris);
 
-        triangleChunks.Add(tris);
+        //triangleChunks.Add(tris);
 
         testing = new Vector4[totalSize];
         positionalDataBuffer.GetData(testing);

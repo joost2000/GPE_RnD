@@ -3,9 +3,12 @@
 RWStructuredBuffer<float4> voxelData;
 
 float size;
+float2 xBeginEnd;
+float2 yBeginEnd;
+float2 zBeginEnd;
 
 int indexFromCoord(int x, int y, int z) {
-    return z * size * size + y * size + x;
+    return z * (xBeginEnd.y - xBeginEnd.x) * (yBeginEnd.y - yBeginEnd.x) + y * (zBeginEnd.y - zBeginEnd.x) + x;
 }
 
 float EuclideanDistance(float3 pointA, float3 pointB) {
@@ -13,14 +16,19 @@ float EuclideanDistance(float3 pointA, float3 pointB) {
     return sqrt(dot(diff, diff));
 }
 
-[numthreads(8,8,8)]
-void CSMain (uint3 id : SV_DispatchThreadID)
+[numthreads(8, 8, 8)]
+void CSMain(uint3 id : SV_DispatchThreadID)
 {
-    //Calculate distance from id to center
-    float3 center = float3(size/2, size/2, size/2);
+    // Check if the current voxel position is outside the chunk boundaries
+    if (id.x < xBeginEnd.x || id.x >= xBeginEnd.y || id.y < yBeginEnd.x || id.y >= yBeginEnd.y || id.z < zBeginEnd.x || id.z >= zBeginEnd.y)
+        return; // Skip this voxel if it's outside of the chunk boundaries
+
+    // Calculate distance from id to center
+    float3 center = float3(size / 2, size / 2, size / 2);
     float distance = EuclideanDistance(center, float3(id.x, id.y, id.z));
 
-    //set the index of the RWStructuredBuffer to the current position and distance
-    int index = indexFromCoord(id.x, id.y, id.z);
+    // Set the index of the RWStructuredBuffer to the current position and distance
+    int index = indexFromCoord(id.x - xBeginEnd.x, id.y - yBeginEnd.x, id.z - zBeginEnd.x);
     voxelData[index] = float4(id.x, id.y, id.z, distance);
 }
+
