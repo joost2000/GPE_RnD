@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Unity.Mathematics;
 using UnityEngine;
 
 [Serializable]
@@ -53,8 +54,12 @@ public class MarchingCubesGPU : MonoBehaviour
     [SerializeField] bool visualizeGizmos;
 
     [Header("Noise variables")]
+    [SerializeField] float minHeight;
     [SerializeField] float noiseFrequency;
     [SerializeField] float heightScale;
+    [SerializeField] float noiseFrequency2;
+    [SerializeField] float heightScale2;
+    [SerializeField] int noiseSeed;
 
     [Header("Gameplay")]
     [SerializeField] GameObject planetPivot;
@@ -82,6 +87,7 @@ public class MarchingCubesGPU : MonoBehaviour
     {
         voxelData = MakeVoxelDataCPU().ToArray();
         CreateChunks();
+        noiseSeed = UnityEngine.Random.Range(0, 50000);
         postProcessingEffectRange.radius = resolution / 2;
         postProcessingEffectRange.transform.position = Vector3.one * (resolution / 2);
     }
@@ -248,18 +254,31 @@ public class MarchingCubesGPU : MonoBehaviour
     private float SphereShape(float x, float y, float z, Vector3 center)
     {
         float distance = Vector3.Distance(new Vector3(x, y, z), center);
-        // Add noise to the distance
         float noise = GenerateNoise(new Vector3(x, y, z), noiseFrequency, heightScale);
-        return distance += noise;
-
+        distance += noise > minHeight ? noise : 0;
+        float depth = GenerateNoise(new Vector3(x, y, z), noiseFrequency2, heightScale2);
+        distance -= depth;
+        //print($"{noise} | {minHeight}");
+        return distance;
     }
 
     private float GenerateNoise(Vector3 position, float scale, float height)
     {
-        float x = position.x * scale;
-        float y = position.y * scale;
-        float z = position.z * scale;
-        return (Mathf.PerlinNoise(x, y) * height) + (Mathf.PerlinNoise(y, z) * height) + (Mathf.PerlinNoise(z, x) * height);
+        return Perlin3D((position.x + noiseSeed) * scale, (position.y + noiseSeed) * scale, (position.z + noiseSeed) * scale) * height;
+    }
+
+    public float Perlin3D(float x, float y, float z)
+    {
+        float xy = Mathf.PerlinNoise(x, y);
+        float xz = Mathf.PerlinNoise(x, z);
+        float yz = Mathf.PerlinNoise(y, z);
+        float yx = Mathf.PerlinNoise(y, x);
+        float zx = Mathf.PerlinNoise(z, x);
+        float zy = Mathf.PerlinNoise(z, y);
+
+        // For an average, you should add them all together
+        // and then divide by the number of values added.
+        return (xy + xz + yz + yx + zx + zy) / 6;
     }
 
     private void OnDrawGizmos()

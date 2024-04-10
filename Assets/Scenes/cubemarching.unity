@@ -1502,7 +1502,7 @@ PrefabInstance:
     - target: {fileID: 4876865752831169757, guid: cca37701061ba8549ab997a56917d2b6,
         type: 3}
       propertyPath: isoLevel
-      value: 64
+      value: 40
       objectReference: {fileID: 0}
     - target: {fileID: 4876865752831169757, guid: cca37701061ba8549ab997a56917d2b6,
         type: 3}
@@ -1511,18 +1511,33 @@ PrefabInstance:
       objectReference: {fileID: 2100000, guid: 00fae56faf1ba7240b9b1011ae508c5b, type: 2}
     - target: {fileID: 4876865752831169757, guid: cca37701061ba8549ab997a56917d2b6,
         type: 3}
+      propertyPath: minHeight
+      value: 3.75
+      objectReference: {fileID: 0}
+    - target: {fileID: 4876865752831169757, guid: cca37701061ba8549ab997a56917d2b6,
+        type: 3}
+      propertyPath: noiseSeed
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 4876865752831169757, guid: cca37701061ba8549ab997a56917d2b6,
+        type: 3}
       propertyPath: noiseScale
       value: 0.2
       objectReference: {fileID: 0}
     - target: {fileID: 4876865752831169757, guid: cca37701061ba8549ab997a56917d2b6,
         type: 3}
       propertyPath: resolution
-      value: 128
+      value: 80
+      objectReference: {fileID: 0}
+    - target: {fileID: 4876865752831169757, guid: cca37701061ba8549ab997a56917d2b6,
+        type: 3}
+      propertyPath: heighScale2
+      value: 0.15
       objectReference: {fileID: 0}
     - target: {fileID: 4876865752831169757, guid: cca37701061ba8549ab997a56917d2b6,
         type: 3}
       propertyPath: heightScale
-      value: 8
+      value: 17
       objectReference: {fileID: 0}
     - target: {fileID: 4876865752831169757, guid: cca37701061ba8549ab997a56917d2b6,
         type: 3}
@@ -1536,12 +1551,22 @@ PrefabInstance:
       objectReference: {fileID: 353757656}
     - target: {fileID: 4876865752831169757, guid: cca37701061ba8549ab997a56917d2b6,
         type: 3}
+      propertyPath: heightScale2
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 4876865752831169757, guid: cca37701061ba8549ab997a56917d2b6,
+        type: 3}
       propertyPath: amountOfChunks
       value: 8
       objectReference: {fileID: 0}
     - target: {fileID: 4876865752831169757, guid: cca37701061ba8549ab997a56917d2b6,
         type: 3}
       propertyPath: noiseFrequency
+      value: 0.14
+      objectReference: {fileID: 0}
+    - target: {fileID: 4876865752831169757, guid: cca37701061ba8549ab997a56917d2b6,
+        type: 3}
+      propertyPath: noiseFrequency2
       value: 0.1
       objectReference: {fileID: 0}
     - target: {fileID: 4876865752831169757, guid: cca37701061ba8549ab997a56917d2b6,
@@ -1750,27 +1775,27 @@ PrefabInstance:
     - target: {fileID: 3678304188661310422, guid: 33701d17ba9a20f4297e65236d8a448f,
         type: 3}
       propertyPath: cameraRotationSpeedX
-      value: 3
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 3678304188661310422, guid: 33701d17ba9a20f4297e65236d8a448f,
         type: 3}
       propertyPath: cameraRotationSpeedY
-      value: 3
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 5111522143411536730, guid: 33701d17ba9a20f4297e65236d8a448f,
         type: 3}
       propertyPath: m_LocalScale.x
-      value: 0.7
+      value: 0.5
       objectReference: {fileID: 0}
     - target: {fileID: 5111522143411536730, guid: 33701d17ba9a20f4297e65236d8a448f,
         type: 3}
       propertyPath: m_LocalScale.y
-      value: 0.7
+      value: 0.5
       objectReference: {fileID: 0}
     - target: {fileID: 5111522143411536730, guid: 33701d17ba9a20f4297e65236d8a448f,
         type: 3}
       propertyPath: m_LocalScale.z
-      value: 0.7
+      value: 0.5
       objectReference: {fileID: 0}
     - target: {fileID: 5111522143411536730, guid: 33701d17ba9a20f4297e65236d8a448f,
         type: 3}
@@ -1820,6 +1845,11 @@ PrefabInstance:
     - target: {fileID: 5111522143411536730, guid: 33701d17ba9a20f4297e65236d8a448f,
         type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5111522143411536730, guid: 33701d17ba9a20f4297e65236d8a448f,
+        type: 3}
+      propertyPath: m_ConstrainProportionsScale
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5857553210003511723, guid: 33701d17ba9a20f4297e65236d8a448f,
