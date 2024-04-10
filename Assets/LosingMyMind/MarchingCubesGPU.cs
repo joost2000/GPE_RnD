@@ -1,7 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using Unity.Mathematics;
 using UnityEngine;
 
 [Serializable]
@@ -71,6 +69,7 @@ public class MarchingCubesGPU : MonoBehaviour
     [SerializeField] List<Triangle[]> triangleChunks = new List<Triangle[]>();
     [SerializeField] List<ChunkBeginEnd> chunkBeginEnds = new List<ChunkBeginEnd>();
     [SerializeField] List<GameObject> chunkGameObjects = new List<GameObject>();
+    [SerializeField] SphereCollider postProcessingEffectRange;
     Vector4[] voxelData;
     Vector4[] testing;
 
@@ -81,16 +80,10 @@ public class MarchingCubesGPU : MonoBehaviour
 
     private void Start()
     {
-        var stopwatch = new System.Diagnostics.Stopwatch();
-        stopwatch.Start();
         voxelData = MakeVoxelDataCPU().ToArray();
-        // CalculateTris(0, resolution - 1, 0, resolution - 1, 0, resolution - 1);
-        // SetMesh();
         CreateChunks();
-        stopwatch.Stop();
-        //Debug.Log("Timer: " + stopwatch.Elapsed);
-        Debug.Log($"Created all chunks in: {stopwatch.ElapsedMilliseconds}ms");
-        stopwatch.Reset();
+        postProcessingEffectRange.radius = resolution / 2;
+        postProcessingEffectRange.transform.position = Vector3.one * (resolution / 2);
     }
 
     void OnEnable()
@@ -177,11 +170,19 @@ public class MarchingCubesGPU : MonoBehaviour
             vertexIndex += 3;
             triangleIndex += 3;
         }
+
+        Vector2[] uvs = new Vector2[vertices.Length];
+        for (int i = 0; i < vertices.Length; i++)
+        {
+            uvs[i] = new Vector2(vertices[i].x / resolution, vertices[i].z / resolution);
+        }
+
         MeshFilter meshToUpdate = chunkToUpdate.GetComponent<MeshFilter>();
         MeshCollider meshColliderToUpdate = chunkToUpdate.GetComponent<MeshCollider>();
         meshToUpdate.mesh.Clear();
         meshToUpdate.mesh.vertices = vertices;
         meshToUpdate.mesh.triangles = meshTriangles;
+        meshToUpdate.mesh.uv = uvs;
         meshToUpdate.mesh.RecalculateNormals();
         meshColliderToUpdate.sharedMesh = meshToUpdate.mesh;
     }
@@ -249,17 +250,16 @@ public class MarchingCubesGPU : MonoBehaviour
         float distance = Vector3.Distance(new Vector3(x, y, z), center);
         // Add noise to the distance
         float noise = GenerateNoise(new Vector3(x, y, z), noiseFrequency, heightScale);
-        return distance -= noise;
+        return distance += noise;
 
     }
 
     private float GenerateNoise(Vector3 position, float scale, float height)
     {
-        int randomOffset = UnityEngine.Random.Range(0, 100);
         float x = position.x * scale;
         float y = position.y * scale;
         float z = position.z * scale;
-        return (Mathf.PerlinNoise(x, y) * height) + (Mathf.PerlinNoise(y, z) * height) + (Mathf.PerlinNoise(z, x) * height) / 3;
+        return (Mathf.PerlinNoise(x, y) * height) + (Mathf.PerlinNoise(y, z) * height) + (Mathf.PerlinNoise(z, x) * height);
     }
 
     private void OnDrawGizmos()
@@ -358,8 +358,15 @@ public class MarchingCubesGPU : MonoBehaviour
             triangleIndex += 3;
         }
 
+        Vector2[] uvs = new Vector2[vertices.Length];
+        for (int i = 0; i < vertices.Length; i++)
+        {
+            uvs[i] = new Vector2(vertices[i].x / resolution, vertices[i].z / resolution);
+        }
+
         mesh.vertices = vertices;
         mesh.triangles = meshTriangles;
+        mesh.uv = uvs;
         mesh.RecalculateNormals();
         meshFilter.mesh = mesh;
         meshRenderer.material = material;

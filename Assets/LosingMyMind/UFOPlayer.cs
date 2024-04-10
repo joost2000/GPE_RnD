@@ -16,6 +16,7 @@ public class UFOPlayer : MonoBehaviour
     [SerializeField] GameObject player;
     [SerializeField] GameObject playerCamera;
     [SerializeField] Transform pivot;
+    [SerializeField] GameObject playerHUD;
     int planetResolution;
     float planetRadius;
     Vector3 planetRotation;
@@ -40,6 +41,7 @@ public class UFOPlayer : MonoBehaviour
             player.GetComponent<PlayerScript>().enabled = true;
             playerCamera.SetActive(true);
             gameObject.GetComponent<UFOPlayer>().enabled = false;
+            playerHUD.SetActive(true);
         }
     }
 
@@ -56,12 +58,6 @@ public class UFOPlayer : MonoBehaviour
 
         if (Input.GetKey(KeyCode.D))
             planetRotation += Vector3.back * rotateSpeed;
-
-        if (Input.GetKey(KeyCode.Q))
-            transform.position += Vector3.up * heightChangeSpeed;
-
-        if (Input.GetKey(KeyCode.E))
-            transform.position += Vector3.down * heightChangeSpeed;
 
         pivot.eulerAngles = planetRotation;
     }
