@@ -269,7 +269,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &464004126
 Transform:
   m_ObjectHideFlags: 0
@@ -556,10 +556,6 @@ PrefabInstance:
         type: 3}
       insertIndex: -1
       addedObject: {fileID: 1696554543}
-    - targetCorrespondingSourceObject: {fileID: 4273223788675585035, guid: 476e92bc0914480499a0d75de2b33a28,
-        type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 2113724047}
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 2198212174540102502, guid: 476e92bc0914480499a0d75de2b33a28,
         type: 3}
@@ -598,8 +594,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1401709103}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.53729963, y: 0, z: 0, w: 0.8433915}
-  m_LocalPosition: {x: 0, y: 35, z: -25}
+  m_LocalRotation: {x: 0.5, y: 0.5, z: -0.5, w: 0.5}
+  m_LocalPosition: {x: 512, y: 1050, z: 512}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -689,8 +685,8 @@ Camera:
     width: 1
     height: 1
   near clip plane: 0.3
-  far clip plane: 1000
-  field of view: 60
+  far clip plane: 4000
+  field of view: 120
   orthographic: 0
   orthographic size: 5
   m_Depth: 0
@@ -1011,14 +1007,14 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2113724046}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.53729963, y: 0, z: 0, w: 0.8433915}
-  m_LocalPosition: {x: 0, y: 35, z: -25}
+  m_LocalRotation: {x: 0.5, y: 0.5, z: -0.5, w: 0.5}
+  m_LocalPosition: {x: 512, y: 1050, z: 512}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 98048325}
-  m_Father: {fileID: 741374541}
-  m_LocalEulerAnglesHint: {x: 65, y: 0, z: 0}
+  m_Father: {fileID: 213958264}
+  m_LocalEulerAnglesHint: {x: 90, y: 90, z: 0}
 --- !u!114 &2113724048
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1040,10 +1036,10 @@ MonoBehaviour:
   m_LookAt: {fileID: 0}
   m_Follow: {fileID: 0}
   m_Lens:
-    FieldOfView: 60
+    FieldOfView: 120
     OrthographicSize: 5
     NearClipPlane: 0.3
-    FarClipPlane: 1000
+    FarClipPlane: 4000
     Dutch: 0
     ModeOverride: 0
     LensShift: {x: 0, y: 0}
@@ -1136,9 +1132,20 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 4876865752831169757, guid: cca37701061ba8549ab997a56917d2b6,
         type: 3}
+      propertyPath: prefab
+      value: 
+      objectReference: {fileID: 2502813304596154071, guid: 758add5502406394e8fa10799d0dcd20,
+        type: 3}
+    - target: {fileID: 4876865752831169757, guid: cca37701061ba8549ab997a56917d2b6,
+        type: 3}
       propertyPath: isoLevel
-      value: 80
+      value: 60
       objectReference: {fileID: 0}
+    - target: {fileID: 4876865752831169757, guid: cca37701061ba8549ab997a56917d2b6,
+        type: 3}
+      propertyPath: material
+      value: 
+      objectReference: {fileID: 2100000, guid: 3c061e502ecb0cf4594ed841fd7fc954, type: 2}
     - target: {fileID: 4876865752831169757, guid: cca37701061ba8549ab997a56917d2b6,
         type: 3}
       propertyPath: noiseScale
@@ -1147,7 +1154,7 @@ PrefabInstance:
     - target: {fileID: 4876865752831169757, guid: cca37701061ba8549ab997a56917d2b6,
         type: 3}
       propertyPath: resolution
-      value: 184
+      value: 128
       objectReference: {fileID: 0}
     - target: {fileID: 4876865752831169757, guid: cca37701061ba8549ab997a56917d2b6,
         type: 3}
@@ -1164,6 +1171,11 @@ PrefabInstance:
       propertyPath: planetPivot
       value: 
       objectReference: {fileID: 353757656}
+    - target: {fileID: 4876865752831169757, guid: cca37701061ba8549ab997a56917d2b6,
+        type: 3}
+      propertyPath: amountOfChunks
+      value: 8
+      objectReference: {fileID: 0}
     - target: {fileID: 4876865752831169757, guid: cca37701061ba8549ab997a56917d2b6,
         type: 3}
       propertyPath: noiseFrequency
@@ -1187,6 +1199,16 @@ PrefabInstance:
     - target: {fileID: 4876865752831169757, guid: cca37701061ba8549ab997a56917d2b6,
         type: 3}
       propertyPath: minMountainHeight
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4876865752831169757, guid: cca37701061ba8549ab997a56917d2b6,
+        type: 3}
+      propertyPath: cubeMarchingChunks
+      value: 
+      objectReference: {fileID: 7200000, guid: de0085816fffd004e9bc7161dbfa519f, type: 3}
+    - target: {fileID: 4876865752831169757, guid: cca37701061ba8549ab997a56917d2b6,
+        type: 3}
+      propertyPath: dataFromJSON.Array.size
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5098634703488994090, guid: cca37701061ba8549ab997a56917d2b6,
@@ -1251,7 +1273,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
-    m_AddedGameObjects: []
+    m_AddedGameObjects:
+    - targetCorrespondingSourceObject: {fileID: 6012018945221021454, guid: cca37701061ba8549ab997a56917d2b6,
+        type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2113724047}
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: cca37701061ba8549ab997a56917d2b6, type: 3}
 --- !u!1001 &2976641248515096840

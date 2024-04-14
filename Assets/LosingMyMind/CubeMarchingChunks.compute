@@ -1,0 +1,68 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+#include "Assets/LosingMyMind/MarchingTable.compute"
+
+struct Triangle
+{
+    float3 v0;
+    float3 v1;
+    float3 v2;
+};
+
+RWStructuredBuffer<float4> voxelData;
+AppendStructuredBuffer<Triangle> triangleData;
+int chunkSize;
+float isoLevel;
+
+float3 interpolateVerts(float4 v1, float4 v2) {
+    float t = (isoLevel - v1.w) / (v2.w - v1.w);
+    return v1.xyz + t * (v2.xyz-v1.xyz);
+}
+
+[numthreads(8,1,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    float4 cubeCorners[8];
+    cubeCorners[0] = voxelData[id.x];
+    cubeCorners[1] = voxelData[id.x+1];
+    cubeCorners[2] = voxelData[id.x + (chunkSize * chunkSize) + 1];
+    cubeCorners[3] = voxelData[id.x + (chunkSize * chunkSize)];
+    cubeCorners[4] = voxelData[id.x + chunkSize];
+    cubeCorners[5] = voxelData[id.x + chunkSize + 1];
+    cubeCorners[6] = voxelData[id.x + (chunkSize * chunkSize) + chunkSize +1];
+    cubeCorners[7] = voxelData[id.x + (chunkSize * chunkSize) + chunkSize];
+
+    Triangle tri;
+    tri.v0 = cubeCorners[0];
+    tri.v1 = cubeCorners[0];
+    tri.v2 = cubeCorners[0];
+    triangleData.Append(tri);
+
+    int cubeIndex = 0;
+
+    for(int i = 0; i < 8; i++){
+        if(cubeCorners[i].w > 0.1 && cubeCorners[i].w < isoLevel){
+            cubeIndex |= 1 << i;
+        }
+    }
+
+    // Create triangles for current cube configuration
+    for (int i = 0; triangulation[cubeIndex][i] != -1; i +=3) {
+        // Get indices of corner points A and B for each of the three edges
+        // of the cube that need to be joined to form the triangle.
+        int a0 = cornerIndexAFromEdge[triangulation[cubeIndex][i]];
+        int b0 = cornerIndexBFromEdge[triangulation[cubeIndex][i]];
+
+        int a1 = cornerIndexAFromEdge[triangulation[cubeIndex][i+1]];
+        int b1 = cornerIndexBFromEdge[triangulation[cubeIndex][i+1]];
+
+        int a2 = cornerIndexAFromEdge[triangulation[cubeIndex][i+2]];
+        int b2 = cornerIndexBFromEdge[triangulation[cubeIndex][i+2]];
+
+        Triangle tri;
+        tri.v0 = interpolateVerts(cubeCorners[a0], cubeCorners[b0]);
+        tri.v1 = interpolateVerts(cubeCorners[a1], cubeCorners[b1]);
+        tri.v2 = interpolateVerts(cubeCorners[a2], cubeCorners[b2]);
+        triangleData.Append(tri);
+    }
+}

@@ -1,0 +1,15 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+
+RWStructuredBuffer<float3> voxelData;
+int gridSize;
+
+int GetIndexFromCoord(uint3 v){
+    return v.y * gridSize * gridSize + v.x * gridSize + v.z;
+}
+
+[numthreads(8,8,8)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    voxelData[GetIndexFromCoord(id)] = float3(id.x, id.y, id.z);
+}
